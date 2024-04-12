@@ -20,6 +20,8 @@ class OpenRouterAPI(LlmApi):
     ):
         super().__init__(model=model)
 
+        self.total_cost = 0
+
         load_dotenv()
         self._api_key = os.getenv("OPENROUTER_API_KEY")
 
@@ -47,6 +49,8 @@ class OpenRouterAPI(LlmApi):
         )
         response.raise_for_status()
         response_json: types_response.Response = response.json()
+
+        self.handle_usage(response_json)
 
         if "message" in response_json["choices"][0]:
             response_message = response_json["choices"][0]["message"]
@@ -79,10 +83,13 @@ class OpenRouterAPI(LlmApi):
         total_tokens = usage["total_tokens"]
         cost = usage["total_cost"]
 
+        self.total_cost += cost
+
         print_in_color(
             f"token usage: input {input_tokens} tokens, "
             f"output {output_tokens} tokens, "
             f"total {total_tokens} tokens, "
-            f"cost {cost}",
+            f"cost {cost}, "
+            f"total cost {self.total_cost}",
             color=Color.YELLOW,
         )

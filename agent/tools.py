@@ -1,3 +1,4 @@
+import platform
 import subprocess
 from agent.consent import ask_execution_consent
 
@@ -10,7 +11,7 @@ tools = [
         type="function",
         function={
             "name": "runCommandLine",
-            "description": "Runs a command line command on the user's system. The user is asked for their consent before executing the command.",
+            "description": "Runs a command line command on the user's system. The user is asked for their consent before executing the command. RUN ONLY CLI COMMANDS THAT OUTPUT TEXT.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -28,8 +29,11 @@ tools = [
 
 @ask_execution_consent
 def run_command_line(command: str, *args, **kwargs) -> str:
+    if platform.system() == "Windows":
+        # Command to invoke PowerShell on Windows
+        command = f"powershell -Command {command}"
+
     try:
-        # Run the command and capture the output
         result = subprocess.run(
             command,
             shell=True,
