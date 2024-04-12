@@ -1,4 +1,5 @@
 import subprocess
+from agent.consent import ask_execution_consent
 
 from text import print_in_color, Color
 
@@ -25,6 +26,7 @@ tools = [
 ]
 
 
+@ask_execution_consent
 def run_command_line(command: str, *args, **kwargs) -> str:
     try:
         # Run the command and capture the output

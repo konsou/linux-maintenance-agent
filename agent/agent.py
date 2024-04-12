@@ -54,7 +54,6 @@ class Agent:
 
         if is_tool_call:
             tool_result = self.run_tool(response)
-            print(f"Tool result:\n{tool_result}")
             self._chat_history.append(
                 types_request.Message(
                     content="You should tell the user about the tool run result.",
