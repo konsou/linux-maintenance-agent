@@ -5,7 +5,7 @@ import requests
 from dotenv import load_dotenv
 
 from llm_api.abc import LlmApi
-from llm_api import types_request, types_response
+from llm_api import types_request, types_response, types_tools
 from text import print_in_color, Color
 
 AVAILABLE_MODELS = [
@@ -27,7 +27,7 @@ class OpenRouterAPI(LlmApi):
         self,
         messages: list[types_request.Message],
         tools: list[types_request.Tool] | None = None,
-    ) -> str:
+    ) -> str | types_tools.ToolCall:
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {self._api_key}",
@@ -35,6 +35,7 @@ class OpenRouterAPI(LlmApi):
         request_data = {
             "model": self.model,
             "messages": messages,
+            "repetition_penalty": 1.5,
         }
         if tools:
             request_data["tools"] = tools
@@ -51,28 +52,37 @@ class OpenRouterAPI(LlmApi):
             response_message = response_json["choices"][0]["message"]
         else:
             raise ValueError("Response does not contain a message")
-        
+
         if isinstance(response_message, str):
             return response_message
-        else:
-            return response_message.get("content", "NO RESPONSE")
+
+        response_content = response_message.get("content")
+        if response_content is None:
+            print_in_color("Response does not contain content", color=Color.YELLOW)
+            return "(NO RESPONSE CONTENT)"
+
+        try:
+            return types_tools.ToolCall(**json.loads(response_content))
+        except:
+            return response_content
 
     def handle_usage(self, response: types_response.Response):
         usage = response.get("usage")
         if not usage:
-            print_in_color("Response does not contain usage information", color=Color.YELLOW)
+            print_in_color(
+                "Response does not contain usage information", color=Color.YELLOW
+            )
             return
-        
+
         input_tokens = usage["prompt_tokens"]
         output_tokens = usage["completion_tokens"]
         total_tokens = usage["total_tokens"]
         cost = usage["total_cost"]
-        
+
         print_in_color(
-            f'token usage: input {input_tokens} tokens, '
-            f'output {output_tokens} tokens, '
-            f'total {total_tokens} tokens, '
-            f'cost {cost}',
+            f"token usage: input {input_tokens} tokens, "
+            f"output {output_tokens} tokens, "
+            f"total {total_tokens} tokens, "
+            f"cost {cost}",
             color=Color.YELLOW,
         )
-

@@ -16,8 +16,10 @@ ToolChoice = Literal['none', 'auto'] | TypedDict('ToolChoice', {
     'function': dict[Literal['name'], str]
 })
 
+MessageRole = Literal["assistant", "user", "system", "tool"]
+
 class Message(TypedDict):
-    role: Literal["assistant", "user", "system", "tool"]
+    role: MessageRole
     content: str
     tools: NotRequired[list[Tool]]
     tool_choice: NotRequired[ToolChoice]
