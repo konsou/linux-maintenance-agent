@@ -3,7 +3,7 @@ from typing import Literal, TypedDict
 
 
 class Message(TypedDict):
-    role: Literal["assistant", "user"]
+    role: Literal["assistant", "user", "system"]
     content: str
 
 
