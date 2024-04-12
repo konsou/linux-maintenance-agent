@@ -1,7 +1,10 @@
 from abc import ABC, abstractmethod
+from typing import Literal, TypedDict
 
 
-Message = dict[str, str]
+class Message(TypedDict):
+    role: Literal["assistant", "user"]
+    content: str
 
 
 class LlmApi(ABC):
