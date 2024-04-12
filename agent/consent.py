@@ -3,7 +3,7 @@ import json
 import pprint
 
 
-def requires_user_consent(func):
+def ask_data_send_consent(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)

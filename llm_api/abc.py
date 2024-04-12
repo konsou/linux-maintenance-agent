@@ -1,10 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Literal, TypedDict
+from . import types_request
 
-
-class Message(TypedDict):
-    role: Literal["assistant", "user", "system"]
-    content: str
 
 
 class LlmApi(ABC):
@@ -17,7 +13,7 @@ class LlmApi(ABC):
         self.timeout = timeout
 
     @abstractmethod
-    def response_from_messages(self, messages: list[Message]) -> str:
+    def response_from_messages(self, messages: list[types_request.Message], tools: list[types_request.Tool] | None = None) -> str:
         pass
 
     def response_from_prompt(self, prompt: str) -> str:
