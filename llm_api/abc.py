@@ -1,6 +1,4 @@
-import json
 from abc import ABC, abstractmethod
-from typing import TypeVar, NamedTuple, Type, Callable, Protocol
 
 
 Message = dict[str, str]

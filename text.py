@@ -1,19 +1,11 @@
 from colorama import Fore, Style, init
+from colorama import Fore as Color
 
 # Initialize colorama to auto-reset colors back to default after each print statement
 init(autoreset=True)
 
-class Color:
-    RED = Fore.RED
-    GREEN = Fore.GREEN
-    YELLOW = Fore.YELLOW
-    BLUE = Fore.BLUE
-    MAGENTA = Fore.MAGENTA
-    CYAN = Fore.CYAN
-    WHITE = Fore.WHITE
-    RESET = Style.RESET_ALL
 
-def print_in_color(message: str, color: Color):
+def print_in_color(message: str, color: str):
     """
     Prints the given message in the specified color.
 
@@ -21,4 +13,8 @@ def print_in_color(message: str, color: Color):
         message (str): The message to print.
         color (Color): The color to print the message in.
     """
-    print(f"{color}{message}{Color.RESET}")
+    print(f"{color}{message}{Style.RESET_ALL}")
+
+
+if __name__ == '__main__':
+    print_in_color("Test", Fore.BLACK)

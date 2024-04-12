@@ -1,3 +1,6 @@
+from settings import LLM_API
+
+
 def chat_session():
     print("AI Helper Chat Session. Type 'exit' to end the session.")
     
@@ -7,6 +10,5 @@ def chat_session():
             print("Exiting AI Helper Chat Session.")
             break
         
-        # Placeholder for AI response logic
-        # Here, you would integrate the logic to generate and return the AI's response based on user_input
-        print(f"AI Response: This is where the AI's response to '{user_input}' will be generated.")
+        response = LLM_API.response_from_prompt(user_input)
+        print(f"AI Response: {response}")
