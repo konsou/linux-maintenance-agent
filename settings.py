@@ -1,5 +1,6 @@
 from llm_api import OpenRouterAPI
 
+ALWAYS_SEND_SYSTEM_DATA = True
 # LLM_MODEL = "google/gemini-pro"
 LLM_MODEL = "anthropic/claude-3-sonnet:beta"
 # "anthropic/claude-3-haiku:beta"

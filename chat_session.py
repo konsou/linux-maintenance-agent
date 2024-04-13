@@ -4,6 +4,8 @@ from agent import Agent
 def chat_session():
     print("AI Helper Chat Session. Type 'exit' to end the session.")
     agent = Agent()
+    print(f"Using model {agent.api.model}")
+    print(f"Agent: {agent.start_greeting}")
 
     while True:
         user_input = input("You: ")
@@ -13,4 +15,4 @@ def chat_session():
 
         response = agent.get_response(user_input)
 
-        print(f"AI Response: {response}")
+        print(f"Agent: {response}")

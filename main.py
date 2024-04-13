@@ -1,5 +1,4 @@
 import argparse
-from agent.tools import run_command_line
 
 from chat_session import chat_session
 

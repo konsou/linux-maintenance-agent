@@ -12,6 +12,7 @@ from text import print_in_color, Color
 class Agent:
     def __init__(self, system_prompt: str = settings.LLM_SYSTEM_PROMPT):
         self.api: LlmApi = settings.LLM_API
+        self.start_greeting = "Hello! How can I help you today?"
         self.system_message: types_request.Message = types_request.Message(
             content=system_prompt,
             role="system",
@@ -27,6 +28,9 @@ class Agent:
                     role="system",
                 )
             )
+        self._chat_history.append(
+            types_request.Message(content=self.start_greeting, role="assistant")
+        )
 
         self.tools = tools.tools
 
