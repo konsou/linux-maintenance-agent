@@ -20,4 +20,34 @@ class TestCommandLineWindows(TestCase):
 
     def test_run_command_line(self):
         result = tools.run_command_line("echo 'Hello World!'")
-        self.assertEqual(result, "Hello World!\nProcess exited with code 0")
+        self.assertEqual("Hello World!\nProcess exited with code 0", result)
+
+    def test_run_command_line_failure(self):
+        result = tools.run_command_line("exit 1")
+        self.assertEqual("Process exited with code 1", result)
+
+    def test_run_command_line_invalid_command(self):
+        result = tools.run_command_line("invalidcommandasdf6ats6")
+        self.assertIn("Process exited with code 1", result)
+
+    def test_run_command_line_long_running(self):
+        result = tools.run_command_line("sleep 1", timeout=0.01)
+        self.assertIn("Process exited with code 1", result)
+        self.assertIn("timed out", result)
+
+    def test_run_command_single_quotes(self):
+        command = "echo 'Hello World!'"
+        result = tools.run_command_line(command)
+        self.assertEqual("Hello World!\nProcess exited with code 0", result)
+
+    def test_run_command_double_quotes(self):
+        command = 'echo "Hello World!"'
+        result = tools.run_command_line(command)
+        self.assertEqual("Hello World!\nProcess exited with code 0", result)
+
+    def test_run_command_multiple(self):
+        command = 'Write-Output "Hello line 1"; Write-Output "Hello line 2"'
+        result = tools.run_command_line(command)
+        self.assertEqual(
+            "Hello line 1\nHello line 2\nProcess exited with code 0", result
+        )

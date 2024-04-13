@@ -28,10 +28,11 @@ tools = [
 
 
 @ask_execution_consent
-def run_command_line(command: str, *args, **kwargs) -> str:
+def run_command_line(command: str, timeout: float = 30, *args, **kwargs) -> str:
     if platform.system() == "Windows":
         # Command to invoke PowerShell on Windows
-        command = f'powershell -Command "{command}"'
+        # Also escape double quotes
+        command = f'powershell -Command "{command.replace('"', '\\"')}"'
 
     print(f'Running command "{command}"...')
 
@@ -43,6 +44,7 @@ def run_command_line(command: str, *args, **kwargs) -> str:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            timeout=timeout,
         )
 
         print_in_color(
@@ -53,6 +55,9 @@ def run_command_line(command: str, *args, **kwargs) -> str:
     except subprocess.CalledProcessError as e:
         print_in_color(f"{e.stdout}Exit code: {e.returncode}", Color.RED)
         return f"{e.stdout}Process exited with code {e.returncode}"
+    except subprocess.TimeoutExpired as e:
+        print_in_color(f"{e}\nExit code: 1", Color.RED)
+        return f"{e}\nProcess exited with code 1"
 
 
 TOOL_FUNCTIONS = {"runCommandLine": run_command_line}
