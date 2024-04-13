@@ -1,5 +1,8 @@
 import platform
 import subprocess
+
+import text
+
 from agent.consent import ask_execution_consent
 
 from text import print_in_color, Color
@@ -36,6 +39,12 @@ def run_command_line(command: str, timeout: float = 30, *args, **kwargs) -> str:
 
     print(f'Running command "{command}"...')
 
+    def _format_and_print_output(output: str, exit_code: int, color: str = text.Fore.WHITE) -> str:
+        output = output.strip() if output.strip() else "(no output)"
+        text_ = f"{output}\nProcess exited with code {exit_code}"
+        print_in_color(text_, color=color)
+        return text_
+
     try:
         result = subprocess.run(
             command,
@@ -47,17 +56,14 @@ def run_command_line(command: str, timeout: float = 30, *args, **kwargs) -> str:
             timeout=timeout,
         )
 
-        print_in_color(
-            f"{result.stdout}Exit code: {result.returncode}",
-            Color.GREEN,
-        )
-        return f"{result.stdout}Process exited with code {result.returncode}"
+        return _format_and_print_output(output=result.stdout,
+                                        exit_code=result.returncode,
+                                        color=Color.GREEN)
+
     except subprocess.CalledProcessError as e:
-        print_in_color(f"{e.stdout}Exit code: {e.returncode}", Color.RED)
-        return f"{e.stdout}Process exited with code {e.returncode}"
+        return _format_and_print_output(output=e.stdout, exit_code=e.returncode, color=Color.RED)
     except subprocess.TimeoutExpired as e:
-        print_in_color(f"{e}\nExit code: 1", Color.RED)
-        return f"{e}\nProcess exited with code 1"
+        return _format_and_print_output(output=str(e), exit_code=1, color=Color.RED)
 
 
 TOOL_FUNCTIONS = {"runCommandLine": run_command_line}

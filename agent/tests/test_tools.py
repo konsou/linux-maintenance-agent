@@ -24,7 +24,7 @@ class TestCommandLineWindows(TestCase):
 
     def test_run_command_line_failure(self):
         result = tools.run_command_line("exit 1")
-        self.assertEqual("Process exited with code 1", result)
+        self.assertEqual("(no output)\nProcess exited with code 1", result)
 
     def test_run_command_line_invalid_command(self):
         result = tools.run_command_line("invalidcommandasdf6ats6")
@@ -51,3 +51,7 @@ class TestCommandLineWindows(TestCase):
         self.assertEqual(
             "Hello line 1\nHello line 2\nProcess exited with code 0", result
         )
+
+    def test_run_command_empty_output(self):
+        result = tools.run_command_line("echo ''")
+        self.assertEqual("(no output)\nProcess exited with code 0", result)
