@@ -21,15 +21,18 @@ class __PatchDecorator:
         self.module_being_tested = module_being_tested
         self.decorator_patch_location = decorator_patch_location
 
+    def patch(self):
+        unittest.mock.patch(self.decorator_patch_location, lambda x: x).start()
+        # HINT: if you're patching a decor with params use something like:
+        # lambda *x, **y: lambda f: f
+        importlib.reload(self.module_being_tested)
+
     def kill_patches(self):
         unittest.mock.patch.stopall()
         importlib.reload(self.module_being_tested)
 
     def __enter__(self):
-        unittest.mock.patch(self.decorator_patch_location, lambda x: x).start()
-        # HINT: if you're patching a decor with params use something like:
-        # lambda *x, **y: lambda f: f
-        importlib.reload(self.module_being_tested)
+        self.patch()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
