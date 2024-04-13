@@ -1,6 +1,7 @@
 from functools import wraps
 import json
 
+import llm_api
 import settings
 
 
@@ -31,8 +32,12 @@ def ask_execution_consent(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         print(f"The assistant would like to execute this function:")
-        kwargs_str = ", ".join([f"{k}={v}" for k, v in kwargs.items()])
-        print(f"{func.__name__}({', '.join(args)}, {kwargs_str})")
+        args_and_kwargs = args + tuple(
+            (f"{k}={json.dumps(v)}" for k, v in kwargs.items())
+        )
+        func_call_str = f"{func.__name__}({', '.join(args_and_kwargs)})"
+        print(func_call_str)
+        print(f"Explanation: {_explain_command(func_call_str)}")
         consent = input("Execute? (y/N): ").lower()
         if consent != "y":
             print(f"Ok, not executing")
@@ -43,3 +48,9 @@ def ask_execution_consent(func):
         return result
 
     return wrapper
+
+
+def _explain_command(command: str, api: llm_api.LlmApi = settings.LLM_API) -> str:
+    return api.response_from_prompt(
+        f"Please explain this command with one sentence: `{command}`"
+    )
