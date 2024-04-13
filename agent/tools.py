@@ -14,7 +14,10 @@ tools = [
         type="function",
         function={
             "name": "runCommandLine",
-            "description": "Runs a command line command on the user's system. The user is asked for their consent before executing the command. RUN ONLY CLI COMMANDS THAT OUTPUT TEXT.",
+            "description": (
+                "Runs a command line command on the user's system. The user is asked for their consent "
+                "before executing the command. RUN ONLY CLI COMMANDS THAT OUTPUT TEXT.\n\n"
+                "On Windows this uses PowerShell. On Linux the default shell is used."),
             "parameters": {
                 "type": "object",
                 "properties": {
