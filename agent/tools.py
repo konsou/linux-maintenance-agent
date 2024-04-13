@@ -31,7 +31,9 @@ tools = [
 def run_command_line(command: str, *args, **kwargs) -> str:
     if platform.system() == "Windows":
         # Command to invoke PowerShell on Windows
-        command = f"powershell -Command {command}"
+        command = f'powershell -Command "{command}"'
+
+    print(f'Running command "{command}"...')
 
     try:
         result = subprocess.run(
@@ -44,13 +46,13 @@ def run_command_line(command: str, *args, **kwargs) -> str:
         )
 
         print_in_color(
-            f"{result.stdout}\nExit code: {result.returncode}",
+            f"{result.stdout}Exit code: {result.returncode}",
             Color.GREEN,
         )
-        return f"{result.stdout}\nProcess exited with code {result.returncode}"
+        return f"{result.stdout}Process exited with code {result.returncode}"
     except subprocess.CalledProcessError as e:
-        print_in_color(f"{e.stdout}\nExit code: {e.returncode}", Color.RED)
-        return f"{e.stdout}\nProcess exited with code {e.returncode}"
+        print_in_color(f"{e.stdout}Exit code: {e.returncode}", Color.RED)
+        return f"{e.stdout}Process exited with code {e.returncode}"
 
 
 TOOL_FUNCTIONS = {"runCommandLine": run_command_line}
