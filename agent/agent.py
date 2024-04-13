@@ -22,7 +22,7 @@ class Agent:
         if self._system_info:
             self._chat_history.append(
                 types_request.Message(
-                    content=f"Here's some information about my system:\n"
+                    content=f"Here's basic information on the user's system:\n"
                     + json.dumps(self._system_info, indent=2),
                     role="system",
                 )
@@ -43,29 +43,27 @@ class Agent:
             self._chat_history, tools=self.tools if allow_tools else None
         )
 
-        is_tool_call = "function" in response and "parameters" in response
-        if is_tool_call:
-            _message_content = json.dumps(response, indent=2)
-        else:
-            _message_content = response
+        # Is a tool call
+        # TODO: better way of ensuring the type. Can't use "isinstance" with TypedDict.
+        if "function" in response and "parameters" in response:
+            return self.handle_tool_call(types_tools.ToolCall(**response))  # type: ignore
+
+        return self.handle_string_response(response)
+
+    def handle_tool_call(self, tool_call: types_tools.ToolCall) -> str:
+        message_content = json.dumps(tool_call, indent=2)
         self._chat_history.append(
-            types_request.Message(content=_message_content, role="assistant")
+            types_request.Message(content=message_content, role="assistant")
         )
+        tool_result = f"Tool use result:\n{self.run_tool(tool_call)}"
+        tool_use_response = self.get_response(tool_result, message_role="system")
+        return tool_use_response
 
-        if is_tool_call:
-            tool_result = self.run_tool(response)
-            self._chat_history.append(
-                types_request.Message(
-                    content="You should tell the user about the tool run result.",
-                    role="system",
-                )
-            )
-            tool_use_response = self.get_response(
-                tool_result, message_role="assistant", allow_tools=False
-            )
-            return tool_use_response
-
-        return _message_content
+    def handle_string_response(self, response: str) -> str:
+        self._chat_history.append(
+            types_request.Message(content=response, role="assistant")
+        )
+        return response
 
     def run_tool(self, tool_call: types_tools.ToolCall) -> str:
         try:
