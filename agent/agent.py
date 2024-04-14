@@ -17,29 +17,37 @@ class Agent:
         self.start_greeting = "Hello! How can I help you today?"
 
         self.system_prompt = system_prompt
-        self.add_to_chat_history(
-            content=system_prompt,
-            role="system",
+        self.system_prompt_message = self._create_message(
+            content=system_prompt, role="system"
         )
+        self.add_to_chat_history(message=self.system_prompt_message)
 
         self.system_info: dict = self.gather_system_info()
         if self.system_info:
-            self.add_to_chat_history(
+            self.system_info_message = self._create_message(
                 content=f"Here's basic information on the user's system:\n"
                 + json.dumps(self.system_info, indent=2),
                 role="system",
             )
+            self.add_to_chat_history(message=self.system_info_message)
         self.add_to_chat_history(content=self.start_greeting, role="assistant")
 
         self.tools = tools.tools
 
+        self.main_goal: str | None = None
+        self.is_first_user_prompt = True
+
     def get_response(
         self,
-        message: str,
-        message_role: types_request.MessageRole = "user",
+        content: str,
+        role: types_request.MessageRole = "user",
         allow_tools: bool = True,
     ) -> str:
-        self.add_to_chat_history(content=message, role=message_role)
+        self.add_to_chat_history(content=content, role=role)
+
+        if self.is_first_user_prompt:
+            self.plan()
+            self.is_first_user_prompt = False
 
         response: str | types_tools.ToolCall = self.api.response_from_messages(
             self.chat_history, tools=self.tools if allow_tools else None
@@ -52,9 +60,19 @@ class Agent:
 
         return self.handle_string_response(response)
 
-    def add_to_chat_history(self, content: str, role: types_request.MessageRole):
-        new_message = types_request.Message(content=content, role=role)
-        self._add_or_merge_message(new_message)
+    def add_to_chat_history(
+        self,
+        content: str | None = None,
+        role: types_request.MessageRole | None = None,
+        message: types_request.Message | None = None,
+    ):
+        if (content is None or role is None) and message is None:
+            raise ValueError("Either content and role or message must be provided")
+
+        if message is None:
+            message = self._create_message(content=content, role=role)
+
+        self._add_or_merge_message(message)
 
     def _add_or_merge_message(self, message: types_request.Message):
         if len(self.chat_history) == 0:
@@ -85,7 +103,7 @@ class Agent:
 
         tool_use_response = self.get_response(
             "Please explain your action and the results",
-            message_role="user",
+            role="user",
             allow_tools=False,
         )
         return tool_use_response
@@ -118,3 +136,22 @@ class Agent:
             "ram": str(round(psutil.virtual_memory().total / (1024.0**3))) + " GB",
         }
         return system_info
+
+    def _create_message(
+        self, content: str, role: types_request.MessageRole
+    ) -> types_request.Message:
+        message = types_request.Message(content=content, role=role)
+        return message
+
+    def plan(self):
+        print(f"Agent is planning...")
+        main_goal_prompt = (
+            "Based on the messages so far, what is the agent's main goal in a single sentence? "
+            'Give your answer in second person, like this: "Your main goal is to (...goal here...)"'
+        )
+        main_goal_message = self._create_message(content=main_goal_prompt, role="user")
+        self.main_goal = self.api.response_from_messages(
+            self.chat_history + [main_goal_message], tag="PLANNING"
+        )
+        print(f'Agent believes its main goal is: "{self.main_goal}"')
+        self.add_to_chat_history(content=self.main_goal, role="system")
