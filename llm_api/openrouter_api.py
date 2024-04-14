@@ -30,7 +30,7 @@ class OpenRouterAPI(LlmApi):
         messages: list[types_request.Message],
         tools: list[types_request.Tool] | None = None,
         tag: str | None = None,
-    ) -> str | types_tools.ToolCall:
+    ) -> str:
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {self._api_key}",
@@ -58,18 +58,7 @@ class OpenRouterAPI(LlmApi):
         else:
             raise ValueError("Response does not contain a message")
 
-        if isinstance(response_message, str):
-            return response_message
-
-        response_content = response_message.get("content")
-        if response_content is None:
-            print_in_color("Response does not contain content", color=Color.YELLOW)
-            return "(NO RESPONSE CONTENT)"
-
-        try:
-            return types_tools.ToolCall(**json.loads(response_content))
-        except Exception:
-            return response_content
+        return response_message["content"]
 
     def handle_usage(self, response: types_response.Response, tag: str | None = None):
         usage = response.get("usage")

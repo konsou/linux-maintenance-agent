@@ -2,7 +2,9 @@ import json
 import platform
 import psutil
 from agent import tools
+from agent.actions import ACTIONS_PROMPT, Actions
 from agent.consent import ask_data_send_consent
+from agent.prompts import SYSTEM_PROMPT, TROUBLESHOOTING_INSTRUCTIONS
 
 from llm_api import LlmApi, types_request, types_tools
 import settings
@@ -10,32 +12,28 @@ from text import print_in_color, Color
 
 
 class Agent:
-    def __init__(self, system_prompt: str = settings.LLM_SYSTEM_PROMPT):
+    def __init__(self, system_prompt: str = SYSTEM_PROMPT):
         self.api: LlmApi = settings.LLM_API
         self.chat_history: list[types_request.Message] = []
+        self.system_info: dict = self.gather_system_info()
+
+        self.add_initial_prompts(
+            [
+                system_prompt,
+                TROUBLESHOOTING_INSTRUCTIONS,
+                ACTIONS_PROMPT,
+                f"Here's basic information on the user's system:\n{json.dumps(self.system_info, indent=2)}",
+            ]
+        )
 
         self.start_greeting = "Hello! How can I help you today?"
-
-        self.system_prompt = system_prompt
-        self.system_prompt_message = self._create_message(
-            content=system_prompt, role="system"
-        )
-        self.add_to_chat_history(message=self.system_prompt_message)
-
-        self.system_info: dict = self.gather_system_info()
-        if self.system_info:
-            self.system_info_message = self._create_message(
-                content=f"Here's basic information on the user's system:\n"
-                + json.dumps(self.system_info, indent=2),
-                role="system",
-            )
-            self.add_to_chat_history(message=self.system_info_message)
         self.add_to_chat_history(content=self.start_greeting, role="assistant")
 
         self.tools = tools.tools
-
-        self.main_goal: str | None = None
-        self.is_first_user_prompt = True
+        self.tools_string = (
+            f"Functions available to you:\n{json.dumps(self.tools, indent=2)}"
+        )
+        self.tools_message = self._create_message(self.tools_string, role="system")
 
     def get_response(
         self,
@@ -46,18 +44,57 @@ class Agent:
     ) -> str:
         self.add_to_chat_history(content=content, role=role)
 
-        if self.is_first_user_prompt:
-            self.plan()
-            self.is_first_user_prompt = False
+        while True:
+            # Include tool descriptions if allowed
+            _api_messages = (
+                self.chat_history + [self.tools_message]
+                if allow_tools
+                else self.chat_history
+            )
 
-        response: str | types_tools.ToolCall = self.api.response_from_messages(
-            self.chat_history, tools=self.tools if allow_tools else None, tag=tag
-        )
+            response: str = self.api.response_from_messages(_api_messages, tag=tag)
 
-        # Is a tool call
-        # TODO: better way of ensuring the type. Can't use "isinstance" with TypedDict.
-        if "function" in response and "parameters" in response:
-            return self.handle_tool_call(types_tools.ToolCall(**response))  # type: ignore
+            try:
+                response_parsed = json.loads(response, strict=False)
+            except json.decoder.JSONDecodeError as e:
+                print_in_color(f"Error parsing response: {response}\n{e}", Color.RED)
+                self.add_to_chat_history(
+                    content="Your response threw a JSONDecodeError - please try again",
+                    role="user",
+                )
+                continue
+
+            self.add_to_chat_history(content=response, role="assistant")
+
+            response_action = response_parsed.get("action")
+            if response_action not in Actions.__members__:
+                print_in_color(f"INVALID ACTION: {response_action}", Color.RED)
+                self.add_to_chat_history(
+                    content=f"INVALID ACTION: {response_action}",
+                    role="user",
+                )
+                continue
+
+            if response_action == Actions.PLAN.name:
+                print(f"PLAN")
+                print(f"Main goal: {response_parsed.get('main_goal')}")
+                print(f"Steps:\n{response_parsed.get('steps')}")
+                self.add_to_chat_history(
+                    content="You've updated your plan, good! What's next?", role="user"
+                )
+                continue
+
+            if response_action == Actions.RUN_FUNCTION.name:
+                print(f"RUN_FUNCTION")
+                self.handle_tool_call(types_tools.ToolCall(**response_parsed))
+                self.add_to_chat_history(
+                    content="You've ran a function. You should PLAN next.", role="user"
+                )
+                continue
+
+            if response_action == Actions.COMMUNICATE.name:
+                print(f"COMMUNICATE")
+                return response_parsed.get("content", "(NO CONTENT)")
 
         return self.handle_string_response(response)
 
@@ -80,7 +117,7 @@ class Agent:
             self.chat_history.append(message)
             return
 
-        roles_to_merge = ("user", "assistant")
+        roles_to_merge = ("user",)
         latest_message = self.chat_history[-1]
         if (
             message["role"] in roles_to_merge
@@ -95,20 +132,14 @@ class Agent:
             return
         self.chat_history.append(message)
 
-    def handle_tool_call(self, tool_call: types_tools.ToolCall) -> str:
-        message_content = json.dumps(tool_call, indent=2)
-        self.add_to_chat_history(content=message_content, role="assistant")
-
-        tool_result = f"Output and exit code for this tool call:\n---\n{self.run_tool(tool_call)}\n---"
-        self.add_to_chat_history(content=tool_result, role="assistant")
-
-        tool_use_response = self.get_response(
-            "Please explain the results of the tool call",
-            role="user",
-            allow_tools=False,
-            tag="EXPLAIN_TOOL",
+    def handle_tool_call(self, tool_call: types_tools.ToolCall):
+        tool_result = (
+            f"FUNCTION CALLER: Output and exit code for your function call:\n"
+            f"---\n"
+            f"{self.run_tool(tool_call)}\n"
+            f"---"
         )
-        return tool_use_response
+        self.add_to_chat_history(content=tool_result, role="user")
 
     def handle_string_response(self, response: str) -> str:
         self.add_to_chat_history(content=response, role="assistant")
@@ -119,11 +150,11 @@ class Agent:
             tool_function = tools.TOOL_FUNCTIONS[tool_call["function"]]
             return tool_function(**tool_call["parameters"])
         except KeyError:
-            message = f"Tool {tool_call['function']} not found"
+            message = f"Function {tool_call['function']} not found"
             print_in_color(message, color=Color.YELLOW)
             return message
         except Exception as e:
-            message = f"Error running tool {tool_call['function']}: {e}"
+            message = f"Error running function {tool_call['function']}: {e}"
             print_in_color(message, color=Color.RED)
             return message
 
@@ -145,15 +176,6 @@ class Agent:
         message = types_request.Message(content=content, role=role)
         return message
 
-    def plan(self):
-        print(f"Agent is planning...")
-        main_goal_prompt = (
-            "Based on the messages so far, what is the agent's main goal in a single sentence? "
-            'Give your answer in second person, like this: "Your main goal is to (...goal here...)"'
-        )
-        main_goal_message = self._create_message(content=main_goal_prompt, role="user")
-        self.main_goal = self.api.response_from_messages(
-            self.chat_history + [main_goal_message], tag="PLANNING"
-        )
-        print(f'Agent believes its main goal is: "{self.main_goal}"')
-        self.add_to_chat_history(content=self.main_goal, role="system")
+    def add_initial_prompts(self, prompts: list[str]):
+        for prompt in prompts:
+            self.add_to_chat_history(content=prompt, role="system")
