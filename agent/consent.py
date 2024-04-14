@@ -52,5 +52,6 @@ def ask_execution_consent(func):
 
 def _explain_command(command: str, api: llm_api.LlmApi = settings.LLM_API) -> str:
     return api.response_from_prompt(
-        f"Please explain this command with one sentence: `{command}`"
+        f"Please explain this command with one sentence: `{command}`. Include only your explanation.",
+        tag="EXPLAIN_COMMAND",
     )
