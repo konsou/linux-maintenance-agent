@@ -42,6 +42,7 @@ class Agent:
         content: str,
         role: types_request.MessageRole = "user",
         allow_tools: bool = True,
+        tag: str | None = "AGENT",
     ) -> str:
         self.add_to_chat_history(content=content, role=role)
 
@@ -50,7 +51,7 @@ class Agent:
             self.is_first_user_prompt = False
 
         response: str | types_tools.ToolCall = self.api.response_from_messages(
-            self.chat_history, tools=self.tools if allow_tools else None
+            self.chat_history, tools=self.tools if allow_tools else None, tag=tag
         )
 
         # Is a tool call
@@ -102,9 +103,10 @@ class Agent:
         self.add_to_chat_history(content=tool_result, role="assistant")
 
         tool_use_response = self.get_response(
-            "Please explain your action and the results",
+            "Please explain the results of the tool call",
             role="user",
             allow_tools=False,
+            tag="EXPLAIN_TOOL",
         )
         return tool_use_response
 
