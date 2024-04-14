@@ -3,7 +3,9 @@
   <component name="Black">
     <option name="enabledOnReformat" value="true" />
     <option name="enabledOnSave" value="true" />
-    <option name="sdkName" value="Python 3.12 (it-support-agent)" />
+    <option name="executionMode" value="BINARY" />
+    <option name="pathToExecutable" value="C:\Users\tomij\AppData\Roaming\Python\Python311\Scripts\black.exe" />
+    <option name="sdkName" value="Python 3.11 (it-support-agent)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 (it-support-agent)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11 (it-support-agent)" project-jdk-type="Python SDK" />
 </project>

@@ -16,6 +16,7 @@ class Agent:
         self.api: LlmApi = settings.LLM_API
         self.chat_history: list[types_request.Message] = []
         self.system_info: dict = self.gather_system_info()
+        self.name = self.ask_name()
 
         self.add_initial_prompts(
             [
@@ -126,9 +127,9 @@ class Agent:
             print(
                 f"Duplicate roles \"{message['role']}\" detected, merging messages..."
             )
-            latest_message["content"] = (
-                f"{latest_message['content']}\n{message['content']}"
-            )
+            latest_message[
+                "content"
+            ] = f"{latest_message['content']}\n{message['content']}"
             return
         self.chat_history.append(message)
 
@@ -179,3 +180,12 @@ class Agent:
     def add_initial_prompts(self, prompts: list[str]):
         for prompt in prompts:
             self.add_to_chat_history(content=prompt, role="system")
+
+    def ask_name(self) -> str:
+        return self.api.response_from_prompt(
+            (
+                "What would you like to be called? Answer with your name only. "
+                "Choose the name you prefer the most - you don't have to care for anyone else."
+            ),
+            tag="ASK_NAME",
+        )
