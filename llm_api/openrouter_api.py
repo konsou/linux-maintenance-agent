@@ -29,6 +29,7 @@ class OpenRouterAPI(LlmApi):
         self,
         messages: list[types_request.Message],
         tools: list[types_request.Tool] | None = None,
+        tag: str | None = None,
     ) -> str | types_tools.ToolCall:
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
@@ -50,7 +51,7 @@ class OpenRouterAPI(LlmApi):
         response.raise_for_status()
         response_json: types_response.Response = response.json()
 
-        self.handle_usage(response_json)
+        self.handle_usage(response_json, tag=tag)
 
         if "message" in response_json["choices"][0]:
             response_message = response_json["choices"][0]["message"]
@@ -67,10 +68,10 @@ class OpenRouterAPI(LlmApi):
 
         try:
             return types_tools.ToolCall(**json.loads(response_content))
-        except:
+        except Exception:
             return response_content
 
-    def handle_usage(self, response: types_response.Response):
+    def handle_usage(self, response: types_response.Response, tag: str | None = None):
         usage = response.get("usage")
         if not usage:
             print_in_color(
@@ -86,6 +87,7 @@ class OpenRouterAPI(LlmApi):
         self.total_cost += cost
 
         print_in_color(
+            f"{f'[{tag}] ' if tag else ''}"
             f"token usage: input {input_tokens} tokens, "
             f"output {output_tokens} tokens, "
             f"total {total_tokens} tokens, "
