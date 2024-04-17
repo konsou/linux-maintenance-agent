@@ -1,6 +1,7 @@
 import platform
 import subprocess
 
+import settings
 import text
 
 from agent.consent import ask_execution_consent
@@ -36,8 +37,15 @@ tools = [
 
 @ask_execution_consent
 def run_command_line(
-    command: str, timeout: float = 30, work_dir: str | None = None, *args, **kwargs
+    command: str,
+    timeout: float = 30,
+    work_dir: str | None = None,
+    *args,
+    **kwargs,
 ) -> str:
+    if work_dir is None:
+        work_dir = settings.AGENT_WORK_DIR
+
     if platform.system() == "Windows":
         # Command to invoke PowerShell on Windows
         # Also escape double quotes

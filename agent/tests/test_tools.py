@@ -1,7 +1,9 @@
 import platform
 import tempfile
 from unittest import TestCase
+from unittest.mock import patch
 
+import settings
 from agent import consent
 from agent import tools
 from agent.tests.helpers import patch_decorator
@@ -62,3 +64,10 @@ class TestCommandLineWindows(TestCase):
             result = tools.run_command_line("Get-Location", work_dir=temp_dir)
             self.assertIn(temp_dir, result)
             self.assertIn("Process exited with code 0", result)
+
+    def test_default_work_dir_read_from_settings(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch("settings.AGENT_WORK_DIR", temp_dir):
+                result = tools.run_command_line("Get-Location")
+                self.assertIn(temp_dir, result)
+                self.assertIn("Process exited with code 0", result)
