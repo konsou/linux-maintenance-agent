@@ -80,6 +80,7 @@ class Agent:
                 print(f"PLAN")
                 print(f"Main goal: {response_parsed.get('main_goal')}")
                 print(f"Steps:\n{response_parsed.get('steps')}")
+                self.delete_old_plans()
                 self.add_to_chat_history(
                     content="You've updated your plan, good! What's next?", role="user"
                 )
@@ -113,6 +114,23 @@ class Agent:
 
         self._add_or_merge_message(message)
 
+    def delete_old_plans(self):
+        first = True
+        for message in reversed(self.chat_history):
+            content = message["content"]
+            try:
+                content_parsed = json.loads(content, strict=False)
+            except json.JSONDecodeError:
+                # Not an action - maybe just a string
+                continue
+
+            if first and content_parsed.get("action") == Actions.PLAN.name:
+                first = False
+                continue
+
+            if content_parsed.get("action") == Actions.PLAN.name:
+                self.chat_history.remove(message)
+
     def _add_or_merge_message(self, message: types_request.Message):
         if len(self.chat_history) == 0:
             self.chat_history.append(message)
@@ -127,9 +145,9 @@ class Agent:
             print(
                 f"Duplicate roles \"{message['role']}\" detected, merging messages..."
             )
-            latest_message[
-                "content"
-            ] = f"{latest_message['content']}\n{message['content']}"
+            latest_message["content"] = (
+                f"{latest_message['content']}\n{message['content']}"
+            )
             return
         self.chat_history.append(message)
 
