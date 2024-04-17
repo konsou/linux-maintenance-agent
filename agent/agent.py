@@ -1,6 +1,8 @@
 import json
 import platform
 import psutil
+
+import agent.actions
 from agent import tools
 from agent.actions import ACTIONS_PROMPT, Actions
 from agent.consent import ask_data_send_consent
@@ -28,7 +30,10 @@ class Agent:
         )
 
         self.start_greeting = "Hello! How can I help you today?"
-        self.add_to_chat_history(content=self.start_greeting, role="assistant")
+        self.add_action_to_chat_history(
+            action={"action": "COMMUNICATE", "content": self.start_greeting},
+            role="assistant",
+        )
 
         self.tools = tools.tools
         self.tools_string = (
@@ -99,6 +104,14 @@ class Agent:
                 return response_parsed.get("content", "(NO CONTENT)")
 
         return self.handle_string_response(response)
+
+    def add_action_to_chat_history(
+        self,
+        action: dict[agent.actions.Actions.__members__, str | dict],
+        role: types_request.MessageRole,
+    ):
+        content = json.dumps(action, indent=2)
+        self.add_to_chat_history(content=content, role=role)
 
     def add_to_chat_history(
         self,
