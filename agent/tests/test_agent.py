@@ -3,6 +3,7 @@ from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 import llm_api.abc
+import settings
 from agent import Agent, actions
 from llm_api import types_request
 
@@ -39,6 +40,7 @@ class TestAgent(TestCase):
     def setUp(self):
         mock_api = MagicMock(spec=llm_api.abc.LlmApi)
         mock_api.response_from_messages = MagicMock(return_value="test")
+        settings.ALWAYS_SEND_SYSTEM_DATA = True
         with patch("settings.LLM_API", mock_api):
             self.agent = Agent()
 
