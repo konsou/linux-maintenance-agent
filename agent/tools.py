@@ -35,12 +35,19 @@ tools = [
 
 
 @ask_execution_consent
-def run_command_line(command: str, timeout: float = 30, *args, **kwargs) -> str:
+def run_command_line(
+    command: str, timeout: float = 30, work_dir: str | None = None, *args, **kwargs
+) -> str:
     if platform.system() == "Windows":
         # Command to invoke PowerShell on Windows
         # Also escape double quotes
         command = command.replace('"', '\\"')
+        if work_dir is not None:
+            command = f"Set-Location {work_dir};{command}"
         command = f'powershell -Command "{command}"'
+    if platform.system() == "Linux":
+        if work_dir is not None:
+            command = f"cd {work_dir};{command}"
 
     print(f'Running command "{command}"...')
 

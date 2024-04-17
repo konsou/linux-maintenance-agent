@@ -1,4 +1,5 @@
 import platform
+import tempfile
 from unittest import TestCase
 
 from agent import consent
@@ -55,3 +56,9 @@ class TestCommandLineWindows(TestCase):
     def test_run_command_empty_output(self):
         result = tools.run_command_line("echo ''")
         self.assertEqual("(no output)\nProcess exited with code 0", result)
+
+    def test_run_command_set_work_dir(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result = tools.run_command_line("Get-Location", work_dir=temp_dir)
+            self.assertIn(temp_dir, result)
+            self.assertIn("Process exited with code 0", result)
