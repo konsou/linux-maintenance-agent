@@ -4,4 +4,5 @@ colorama
 black
 psutil
 mypy
+pytest
 
