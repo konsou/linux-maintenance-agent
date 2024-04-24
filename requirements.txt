@@ -6,3 +6,4 @@ psutil
 mypy
 pytest
 
+git+https://github.com/konsou/llm-api.git

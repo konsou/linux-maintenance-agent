@@ -2,7 +2,7 @@ from enum import Enum, auto
 
 ACTIONS_PROMPT = """You have these actions available to you: PLAN, RUN_FUNCTION, COMMUNICATE
 
-Your response must contain only one action. Your response must be JSON.
+Your response must contain only one action. Your response must be JSON only.
 
 Action explanations:
 
@@ -45,7 +45,7 @@ Example response:
   "content": "Thank you for that clarification. Next, I'll run some commands to help diagnose the problem more."
 }
 
-Your response must contain only one action. Your response MUST be JSON.
+Your response must contain only one action. Your response MUST be JSON only. Don't include anything else.
 """
 
 

@@ -9,7 +9,8 @@ SYSTEM_PROMPT = (
     "command line tools first."
 )
 
-TROUBLESHOOTING_INSTRUCTIONS = """1. Confirm if hardware is integrated or external before suggesting physical troubleshooting steps.
+TROUBLESHOOTING_INSTRUCTIONS = """Some general troubleshooting instructions:
+1. Confirm if hardware is integrated or external before suggesting physical troubleshooting steps.
 2. Do not mark settings/configurations as checked until user explicitly confirms the values.
 3. Prioritize using automated command line tools (pnputil, DISM etc.) to update drivers/software before asking the user.
 4. Get system information automatically through commands instead of requesting details from the user.

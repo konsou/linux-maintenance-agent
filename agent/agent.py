@@ -1,5 +1,7 @@
 import json
 import platform
+import re
+
 import psutil
 
 import agent.actions
@@ -18,7 +20,8 @@ class Agent:
         self.api: LlmApi = settings.LLM_API
         self.chat_history: list[types_request.Message] = []
         self.system_info: dict = self.gather_system_info()
-        self.name = self.ask_name()
+        # self.name = self.ask_name()
+        self.name = "Assistant"
 
         self.add_initial_prompts(
             [
@@ -60,8 +63,16 @@ class Agent:
 
             response: str = self.api.response_from_messages(_api_messages, tag=tag)
 
+            response_stripped = self.strip_text_outside_curly_braces(response)
+            if response != response_stripped:
+                print_in_color("Had to strip extra content outside {}", Color.YELLOW)
+                self.add_to_chat_history(
+                    "Your response contained text that wasn't valid JSON. I stripped the extra text for now."
+                    " In the future, please respond ONLY JSON.",
+                    role="user")
+
             try:
-                response_parsed = json.loads(response, strict=False)
+                response_parsed = json.loads(response_stripped, strict=False)
             except json.decoder.JSONDecodeError as e:
                 print_in_color(f"Error parsing response: {response}\n{e}", Color.RED)
                 self.add_to_chat_history(
@@ -104,6 +115,13 @@ class Agent:
                 return response_parsed.get("content", "(NO CONTENT)")
 
         return self.handle_string_response(response)
+
+    def strip_text_outside_curly_braces(self, text: str) -> str:
+        # Matches everything from the first { to the last } including nested ones
+        match = re.search(r'\{.*\}', text, re.DOTALL)
+        if match:
+            return match.group(0)
+        return ""  # Return an empty string if no outermost braces are found
 
     def add_action_to_chat_history(
         self,
