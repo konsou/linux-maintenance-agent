@@ -8,7 +8,7 @@ import agent.actions
 from agent import tools
 from agent.actions import ACTIONS_PROMPT, Actions
 from agent.consent import ask_data_send_consent
-from agent.prompts import SYSTEM_PROMPT, TROUBLESHOOTING_INSTRUCTIONS
+from agent.prompts import SYSTEM_PROMPT
 
 from llm_api import LlmApi, types_request, types_tools
 import settings
@@ -26,9 +26,7 @@ class Agent:
         self.add_initial_prompts(
             [
                 system_prompt,
-                TROUBLESHOOTING_INSTRUCTIONS,
                 ACTIONS_PROMPT,
-                f"Here's basic information on the user's system:\n{json.dumps(self.system_info, indent=2)}",
             ]
         )
 
