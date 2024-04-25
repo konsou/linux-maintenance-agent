@@ -49,7 +49,7 @@ Example:
 ACTIONS_SPAWN_AND_EXECUTE = """
 # SPAWN_AND_EXECUTE
 ## Spawn a temporary child AI agent to execute a task in your plan
-The agent exists only for the duration of the task.
+The agent exists only for the duration of the task. IMPORTANT: Each agent should have a very limited scope - optimally one agent should be responsible for one file, or one small task.
 Attributes:
   - "name" (string) (required) - name of the child agent
   - "instructions" (string) (required) - instructions for the agent. Should contain all the information needed to execute the task.
