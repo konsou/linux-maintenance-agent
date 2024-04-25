@@ -1,9 +1,6 @@
 from colorama import Fore, Style, init
 from colorama import Fore as Color
 
-# Initialize colorama to auto-reset colors back to default after each print statement
-init(autoreset=True)
-
 
 def print_in_color(message: str, color: str):
     """
@@ -16,5 +13,11 @@ def print_in_color(message: str, color: str):
     print(f"{color}{message}{Style.RESET_ALL}")
 
 
-if __name__ == '__main__':
+def truncate_string(s: str, n: int) -> str:
+    if len(s) > n:
+        return s[:n] + "..."
+    return s
+
+
+if __name__ == "__main__":
     print_in_color("Test", Fore.BLACK)

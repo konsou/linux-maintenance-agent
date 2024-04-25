@@ -12,7 +12,7 @@ from agent.prompts import SYSTEM_PROMPT
 
 from llm_api import LlmApi, types_request, types_tools
 import settings
-from text import print_in_color, Color
+from text import print_in_color, Color, truncate_string
 
 
 class Agent:
@@ -67,7 +67,8 @@ class Agent:
                 self.add_to_chat_history(
                     "Your response contained text that wasn't valid JSON. I stripped the extra text for now."
                     " In the future, please respond ONLY JSON.",
-                    role="user")
+                    role="user",
+                )
 
             try:
                 response_parsed = json.loads(response_stripped, strict=False)
@@ -116,7 +117,7 @@ class Agent:
 
     def strip_text_outside_curly_braces(self, text: str) -> str:
         # Matches everything from the first { to the last } including nested ones
-        match = re.search(r'\{.*\}', text, re.DOTALL)
+        match = re.search(r"\{.*\}", text, re.DOTALL)
         if match:
             return match.group(0)
         return ""  # Return an empty string if no outermost braces are found
@@ -161,6 +162,13 @@ class Agent:
                 self.chat_history.remove(message)
 
     def _add_or_merge_message(self, message: types_request.Message):
+        content_truncated = truncate_string(
+            message.get("content").replace("\n", " "), 100
+        )
+        print_in_color(
+            f"{message.get('role')}: {content_truncated}",
+            Color.LIGHTBLACK_EX,
+        )
         if len(self.chat_history) == 0:
             self.chat_history.append(message)
             return
