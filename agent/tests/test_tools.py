@@ -49,6 +49,15 @@ class TestCommandLineCommon(TestCase):
         result = tools.run_command_line("echo ''")
         self.assertEqual("(no output)\nProcess exited with code 0", result)
 
+    def test_json_with_escaped_quotes(self):
+        # TODO: THIS
+        """Error parsing response:
+{
+  "action": "RUN_COMMAND_LINE",
+  "command": "echo 'def write_file(file_path, content):\n    try:\n        with open(file_path, \'w\') as f:\n            f.write(content)\n    except Exception as e:\n        print(f\"Error: {e}\")' >> tools/write_file.py"
+}
+Invalid \escape: line 3 column 97 (char 130)"""
+
 
 class TestCommandLineWindows(TestCase):
     def setUp(self):
