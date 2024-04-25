@@ -101,7 +101,7 @@ class Agent:
                 print(response_action)
                 self.run_command_line(response_parsed["command"])
                 self.add_to_chat_history(
-                    content="You've ran a command. What will you do next?",
+                    content="You've ran a command. You should PLAN next.",
                     role="user",
                     name="Response parser",
                 )
@@ -113,10 +113,14 @@ class Agent:
                     name=response_parsed["name"],
                     instructions=response_parsed["instructions"],
                 )
+                self.add_to_chat_history(
+                    content="You should PLAN next.",
+                    role="user",
+                    name="Response parser",
+                )
                 continue
 
             if response_action == Actions.COMMUNICATE.name:
-                print(f"COMMUNICATE")
                 return response_parsed.get("content", "(NO CONTENT)")
 
         return self.handle_string_response(response)
