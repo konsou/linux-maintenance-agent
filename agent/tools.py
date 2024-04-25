@@ -10,30 +10,6 @@ from text import print_in_color, Color
 
 from llm_api.types_request import Tool
 
-tools = [
-    Tool(
-        type="function",
-        function={
-            "name": "runCommandLine",
-            "description": (
-                "Runs a command line command on the user's system. The user is asked for their consent "
-                "before executing the command. RUN ONLY CLI COMMANDS THAT OUTPUT TEXT.\n\n"
-                "On Windows this uses PowerShell. On Linux the default shell is used."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "command": {
-                        "type": "string",
-                        "description": "The command to run",
-                    },
-                },
-                "required": ["command"],
-            },
-        },
-    )
-]
-
 
 @ask_execution_consent
 def run_command_line(

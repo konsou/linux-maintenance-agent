@@ -10,6 +10,9 @@ def chat_session():
 
     while True:
         user_input = input("You: ")
+        if not user_input.strip():
+            user_input = "Alright, continue"
+
         if user_input.lower() == "exit":
             print("Exiting AI Helper Chat Session.")
             break

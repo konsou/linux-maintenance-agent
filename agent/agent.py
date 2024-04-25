@@ -5,32 +5,31 @@ import re
 import psutil
 
 import agent.actions
-from agent import tools
-from agent.actions import ACTIONS_PROMPT, EXECUTE_ACTION, Actions
+from agent.actions import BASE_ACTIONS_PROMPT, PLANNER_ACTIONS_PROMPT, Actions
 from agent.consent import ask_data_send_consent
-from agent.prompts import SYSTEM_PROMPT
+from agent.prompts import CLARIFICATION_PROMPT
 
-from llm_api import LlmApi, types_request, types_tools
+from llm_api import LlmApi, types_request
 import settings
+from agent.tools import run_command_line
 from text import print_in_color, Color, truncate_string
 
 
 class Agent:
-    def __init__(
-        self, name: str, system_prompt: str = SYSTEM_PROMPT, is_planner: bool = False
-    ):
+    def __init__(self, name: str, system_prompt, is_planner: bool = False):
         self.api: LlmApi = settings.LLM_API
         self.chat_history: list[types_request.Message] = []
         self.name = name
 
         self.is_planner = is_planner
-        initial_prompts = [
-            system_prompt,
-            ACTIONS_PROMPT,
-        ]
         if is_planner:
-            initial_prompts.append(EXECUTE_ACTION)
-        self.add_initial_prompts(initial_prompts)
+            self.add_initial_prompts(
+                [system_prompt, CLARIFICATION_PROMPT, PLANNER_ACTIONS_PROMPT]
+            )
+        else:
+            self.add_initial_prompts(
+                [system_prompt, CLARIFICATION_PROMPT, BASE_ACTIONS_PROMPT]
+            )
 
         self.start_greeting = "Hello! How can I help you today?"
         self.add_action_to_chat_history(
@@ -39,31 +38,18 @@ class Agent:
             name=self.name,
         )
 
-        self.tools = tools.tools
-        self.tools_string = (
-            f"Functions available to you:\n{json.dumps(self.tools, indent=2)}"
-        )
-        self.tools_message = self._create_message(self.tools_string, role="system")
-
     def get_response(
         self,
         content: str,
         role: types_request.MessageRole = "user",
         asker_name: str = "User",
-        allow_tools: bool = True,
         tag: str | None = "AGENT",
     ) -> str:
         self.add_to_chat_history(content=content, role=role, name=asker_name)
 
         while True:
-            # Include tool descriptions if allowed
-            _api_messages = (
-                self.chat_history + [self.tools_message]
-                if allow_tools
-                else self.chat_history
-            )
 
-            response: str = self.api.response_from_messages(_api_messages, tag=tag)
+            response: str = self.api.response_from_messages(self.chat_history, tag=tag)
 
             response_stripped = self.strip_text_outside_curly_braces(response)
             if response != response_stripped:
@@ -110,17 +96,17 @@ class Agent:
                 )
                 continue
 
-            if response_action == Actions.RUN_FUNCTION.name:
-                print(f"RUN_FUNCTION")
-                self.handle_tool_call(types_tools.ToolCall(**response_parsed))
+            if response_action == Actions.RUN_COMMAND_LINE.name:
+                print(response_action)
+                self.run_command_line(response_parsed["command"])
                 self.add_to_chat_history(
-                    content="You've ran a function. You should PLAN next.",
+                    content="You've ran a command. What will you do next?",
                     role="user",
                     name="Response parser",
                 )
                 continue
 
-            if response_action == Actions.EXECUTE.name:
+            if response_action == Actions.SPAWN_AND_EXECUTE.name:
                 print(response_action)
                 self.spawn_agent_and_execute(
                     name=response_parsed["name"],
@@ -214,33 +200,20 @@ class Agent:
             return
         self.chat_history.append(message)
 
-    def handle_tool_call(self, tool_call: types_tools.ToolCall):
-        tool_result = (
-            f"FUNCTION CALLER: Output and exit code for your function call:\n"
+    def run_command_line(self, command: str):
+        result = (
+            f"COMMAND LINE: Output and exit code for your command:\n"
             f"---\n"
-            f"{self.run_tool(tool_call)}\n"
+            f"{run_command_line(command)}\n"
             f"---"
         )
         self.add_to_chat_history(
-            content=tool_result, role="user", name="Function caller"
+            content=result, role="user", name="Command line runner"
         )
 
     def handle_string_response(self, response: str) -> str:
         self.add_to_chat_history(content=response, role="assistant", name=self.name)
         return response
-
-    def run_tool(self, tool_call: types_tools.ToolCall) -> str:
-        try:
-            tool_function = tools.TOOL_FUNCTIONS[tool_call["function"]]
-            return tool_function(**tool_call["parameters"])
-        except KeyError:
-            message = f"Function {tool_call['function']} not found"
-            print_in_color(message, color=Color.YELLOW)
-            return message
-        except Exception as e:
-            message = f"Error running function {tool_call['function']}: {e}"
-            print_in_color(message, color=Color.RED)
-            return message
 
     @ask_data_send_consent
     def gather_system_info(self) -> dict:
@@ -270,7 +243,9 @@ class Agent:
         """Spawn an agent to fulfill a task. Exits this function when the task is complete."""
         child = Agent(name=name, system_prompt=instructions, is_planner=False)
         self.add_to_chat_history(
-            f"Spawned an agent named {name}", role="user", name="Response parser"
+            f"Spawned a temporary child agent named {name}",
+            role="user",
+            name="Response parser",
         )
         self.add_to_chat_history(
             f"CHILD AGENT COMMUNICATION SESSION ACTIVE. DURING THIS SESSION, ALL [COMMUNICATE] CALLS WILL BE DIRECTED TO THE CHILD AGENT.",
@@ -298,6 +273,6 @@ class Agent:
             input("Press ENTER to continue")
 
         self.add_to_chat_history(
-            f"CHILD AGENT COMMUNICATION SESSION ENDED. [COMMUNICATE] CALLS ARE ONCE MORE DIRECTED TO THE USER.",
+            f"CHILD AGENT COMMUNICATION SESSION ENDED. CHILD AGENT TERMINATED. [COMMUNICATE] CALLS ARE ONCE MORE DIRECTED TO THE USER.",
             role="system",
         )
