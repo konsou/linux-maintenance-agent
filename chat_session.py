@@ -1,9 +1,10 @@
 from agent import Agent
+from agent.prompts import PLANNER_PROMPT
 
 
 def chat_session():
     print("AI Helper Chat Session. Type 'exit' to end the session.")
-    agent = Agent()
+    agent = Agent(name="Alice", system_prompt=PLANNER_PROMPT, is_planner=True)
     print(f"Using model {agent.api.model}")
     print(f"{agent.name}: {agent.start_greeting}")
 

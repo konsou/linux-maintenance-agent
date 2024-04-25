@@ -11,12 +11,12 @@ Action explanations:
 ## IMPORTANT! You should PLAN after each other action.
 Attributes:
   - "main_goal" (string) (required) - a short description of your main goal
-  - "steps" (string) (required) - a short list of steps needed to reach the goal. NOTE: For each step, you must indicate if it's [DONE], [IN PROGRESS], or [TODO].  
+  - "steps" (string) (required) - a list of steps needed to reach the goal. NOTE: For each step, you must indicate if it's [DONE], [IN PROGRESS], or [TODO].  
 Example response:
 {
   "action": "PLAN",
-  "main_goal": "Free disk space on the user's computer",
-  "steps": "- [DONE] Check disk space usage (2 GB free of 240 GB total)\n- [IN PROGRESS] Delete temporary files\n- [TODO] Check if cleaning temporary files freed enough space",
+  "main_goal": "Implement a new authentication feature",
+  "steps": "- [DONE] Define requirements and scope of the authentication feature\n- [IN PROGRESS] Implement the login endpoint\n- [TODO] Write unit tests for the new endpoint\n- [TODO] Integrate with the frontend login form\n- [TODO] Conduct integration testing\n- [TODO] Deploy the feature to the staging environment for testing\n- [TODO] Review and go live"
 }
 
 # RUN_FUNCTION
@@ -48,8 +48,25 @@ Example response:
 Your response must contain only one action. Your response MUST be JSON only. Don't include anything else.
 """
 
+EXECUTE_ACTION = """
+In addition, as you are the planner, you have this action available to you:
+
+# EXECUTE
+## Spawn an AI agent to execute a task in your plan
+Attributes:
+  - "name" (string) (required) - name of the agent
+  - "instructions" (string) (required) - instructions for the agent. Should contain all the information needed to execute the task.
+Example response:
+{
+  "action": "EXECUTE",
+  "name": "Betty",
+  "instructions": "You are a professional software developer. Your task is to write unit tests for the SettingsReader class in settings.py. Save the tests in tests/test_settings.py. Report to me when you're done."
+}
+"""
+
 
 class Actions(Enum):
     PLAN = auto()
     RUN_FUNCTION = auto()
     COMMUNICATE = auto()
+    EXECUTE = auto()

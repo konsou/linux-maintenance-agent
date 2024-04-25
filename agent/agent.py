@@ -6,7 +6,7 @@ import psutil
 
 import agent.actions
 from agent import tools
-from agent.actions import ACTIONS_PROMPT, Actions
+from agent.actions import ACTIONS_PROMPT, EXECUTE_ACTION, Actions
 from agent.consent import ask_data_send_consent
 from agent.prompts import SYSTEM_PROMPT
 
@@ -16,24 +16,27 @@ from text import print_in_color, Color, truncate_string
 
 
 class Agent:
-    def __init__(self, system_prompt: str = SYSTEM_PROMPT):
+    def __init__(
+        self, name: str, system_prompt: str = SYSTEM_PROMPT, is_planner: bool = False
+    ):
         self.api: LlmApi = settings.LLM_API
         self.chat_history: list[types_request.Message] = []
-        self.system_info: dict = self.gather_system_info()
-        # self.name = self.ask_name()
-        self.name = "Assistant"
+        self.name = name
 
-        self.add_initial_prompts(
-            [
-                system_prompt,
-                ACTIONS_PROMPT,
-            ]
-        )
+        self.is_planner = is_planner
+        initial_prompts = [
+            system_prompt,
+            ACTIONS_PROMPT,
+        ]
+        if is_planner:
+            initial_prompts.append(EXECUTE_ACTION)
+        self.add_initial_prompts(initial_prompts)
 
         self.start_greeting = "Hello! How can I help you today?"
         self.add_action_to_chat_history(
             action={"action": "COMMUNICATE", "content": self.start_greeting},
             role="assistant",
+            name=self.name,
         )
 
         self.tools = tools.tools
@@ -46,10 +49,11 @@ class Agent:
         self,
         content: str,
         role: types_request.MessageRole = "user",
+        asker_name: str = "User",
         allow_tools: bool = True,
         tag: str | None = "AGENT",
     ) -> str:
-        self.add_to_chat_history(content=content, role=role)
+        self.add_to_chat_history(content=content, role=role, name=asker_name)
 
         while True:
             # Include tool descriptions if allowed
@@ -68,6 +72,7 @@ class Agent:
                     "Your response contained text that wasn't valid JSON. I stripped the extra text for now."
                     " In the future, please respond ONLY JSON.",
                     role="user",
+                    name="Response parser",
                 )
 
             try:
@@ -77,10 +82,11 @@ class Agent:
                 self.add_to_chat_history(
                     content="Your response threw a JSONDecodeError - please try again",
                     role="user",
+                    name="Response parser",
                 )
                 continue
 
-            self.add_to_chat_history(content=response, role="assistant")
+            self.add_to_chat_history(content=response, role="assistant", name=self.name)
 
             response_action = response_parsed.get("action")
             if response_action not in Actions.__members__:
@@ -88,6 +94,7 @@ class Agent:
                 self.add_to_chat_history(
                     content=f"INVALID ACTION: {response_action}",
                     role="user",
+                    name="Response parser",
                 )
                 continue
 
@@ -97,7 +104,9 @@ class Agent:
                 print(f"Steps:\n{response_parsed.get('steps')}")
                 self.delete_old_plans()
                 self.add_to_chat_history(
-                    content="You've updated your plan, good! What's next?", role="user"
+                    content="You've updated your plan, good! What's next?",
+                    role="user",
+                    name="Response parser",
                 )
                 continue
 
@@ -105,7 +114,17 @@ class Agent:
                 print(f"RUN_FUNCTION")
                 self.handle_tool_call(types_tools.ToolCall(**response_parsed))
                 self.add_to_chat_history(
-                    content="You've ran a function. You should PLAN next.", role="user"
+                    content="You've ran a function. You should PLAN next.",
+                    role="user",
+                    name="Response parser",
+                )
+                continue
+
+            if response_action == Actions.EXECUTE.name:
+                print(response_action)
+                self.spawn_agent_and_execute(
+                    name=response_parsed["name"],
+                    instructions=response_parsed["instructions"],
                 )
                 continue
 
@@ -126,13 +145,15 @@ class Agent:
         self,
         action: dict[agent.actions.Actions.__members__, str | dict],
         role: types_request.MessageRole,
+        name: str | None = None,
     ):
         content = json.dumps(action, indent=2)
-        self.add_to_chat_history(content=content, role=role)
+        self.add_to_chat_history(content=content, role=role, name=name)
 
     def add_to_chat_history(
         self,
         content: str | None = None,
+        name: str | None = None,
         role: types_request.MessageRole | None = None,
         message: types_request.Message | None = None,
     ):
@@ -140,7 +161,7 @@ class Agent:
             raise ValueError("Either content and role or message must be provided")
 
         if message is None:
-            message = self._create_message(content=content, role=role)
+            message = self._create_message(content=content, role=role, name=name)
 
         self._add_or_merge_message(message)
 
@@ -166,9 +187,10 @@ class Agent:
             message.get("content").replace("\n", " "), 100
         )
         print_in_color(
-            f"{message.get('role')}: {content_truncated}",
+            f"{message.get('name', '')} ({message.get('role')}): {content_truncated}",
             Color.LIGHTBLACK_EX,
         )
+
         if len(self.chat_history) == 0:
             self.chat_history.append(message)
             return
@@ -179,6 +201,10 @@ class Agent:
             message["role"] in roles_to_merge
             and message["role"] == latest_message["role"]
         ):
+            print_in_color(f"[Merging disabled for now]", Color.LIGHTBLACK_EX)
+            self.chat_history.append(message)
+            return
+
             print(
                 f"Duplicate roles \"{message['role']}\" detected, merging messages..."
             )
@@ -195,10 +221,12 @@ class Agent:
             f"{self.run_tool(tool_call)}\n"
             f"---"
         )
-        self.add_to_chat_history(content=tool_result, role="user")
+        self.add_to_chat_history(
+            content=tool_result, role="user", name="Function caller"
+        )
 
     def handle_string_response(self, response: str) -> str:
-        self.add_to_chat_history(content=response, role="assistant")
+        self.add_to_chat_history(content=response, role="assistant", name=self.name)
         return response
 
     def run_tool(self, tool_call: types_tools.ToolCall) -> str:
@@ -227,20 +255,49 @@ class Agent:
         return system_info
 
     def _create_message(
-        self, content: str, role: types_request.MessageRole
+        self, content: str, role: types_request.MessageRole, name: str | None = None
     ) -> types_request.Message:
         message = types_request.Message(content=content, role=role)
+        if name is not None:
+            message["name"] = name
         return message
 
     def add_initial_prompts(self, prompts: list[str]):
         for prompt in prompts:
             self.add_to_chat_history(content=prompt, role="system")
 
-    def ask_name(self) -> str:
-        return self.api.response_from_prompt(
-            (
-                "What would you like to be called? Answer with your name only. "
-                "Choose the name you prefer the most - you don't have to care for anyone else."
-            ),
-            tag="ASK_NAME",
+    def spawn_agent_and_execute(self, name: str, instructions: str):
+        """Spawn an agent to fulfill a task. Exits this function when the task is complete."""
+        child = Agent(name=name, system_prompt=instructions, is_planner=False)
+        self.add_to_chat_history(
+            f"Spawned an agent named {name}", role="user", name="Response parser"
+        )
+        self.add_to_chat_history(
+            f"CHILD AGENT COMMUNICATION SESSION ACTIVE. DURING THIS SESSION, ALL [COMMUNICATE] CALLS WILL BE DIRECTED TO THE CHILD AGENT.",
+            role="system",
+        )
+        parent_communication = "Please execute your task. Tell me when you are done."
+        while True:
+            child_communication = child.get_response(
+                parent_communication, asker_name=self.name, tag="CHILD"
+            )
+            print(f"{name}: {child_communication}")
+            task_done = child.get_response(
+                "Is your task done? Answer with COMMUNICATE, yes/no only.",
+                asker_name=self.name,
+                tag="CHILD",
+            )
+            if "yes" in task_done.lower():
+                self.add_to_chat_history(child_communication, role="user", name=name)
+                self.add_to_chat_history("My task is done.", role="user", name=name)
+                break
+            parent_communication = self.get_response(
+                child_communication, asker_name=name
+            )
+            print(f"{self.name}: {parent_communication}")
+            input("Press ENTER to continue")
+
+        self.add_to_chat_history(
+            f"CHILD AGENT COMMUNICATION SESSION ENDED. [COMMUNICATE] CALLS ARE ONCE MORE DIRECTED TO THE USER.",
+            role="system",
         )
