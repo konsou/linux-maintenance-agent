@@ -35,8 +35,10 @@ Example:
 ACTIONS_COMMAND_LINE = """
 # RUN_COMMAND_LINE
 ## Run a command line command in your workspace
+Each command is executed in a separate process. Use full paths when accessing files and directories.
 Attributes:
 - "command" (string) (required) - the command to run. The user is asked for their consent before executing the command. RUN ONLY CLI COMMANDS THAT OUTPUT TEXT. On Windows this uses PowerShell. On Linux the default shell is used.
+
 Example:
 {
   "action": "RUN_COMMAND_LINE",
