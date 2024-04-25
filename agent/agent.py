@@ -22,11 +22,12 @@ class Agent:
         self.name = name
 
         self.is_planner = is_planner
+        actions_prompt = PLANNER_ACTIONS_PROMPT if is_planner else BASE_ACTIONS_PROMPT
         self.add_initial_prompts(
             [
                 system_prompt,
                 CLARIFICATION_PROMPT,
-                PLANNER_ACTIONS_PROMPT,
+                actions_prompt,
                 # TODO: __pycache__ and .pytest_cache not ignored
                 f"Your work dir contents:\n{list_directory_contents('.')}",
             ]
@@ -65,7 +66,7 @@ class Agent:
             try:
                 response_parsed = json.loads(response_stripped, strict=False)
             except json.decoder.JSONDecodeError as e:
-                print_in_color(f"Error parsing response: {response}\n{e}", Color.RED)
+                print_in_color(f"Error parsing response:\n{response}\n{e}", Color.RED)
                 self.add_to_chat_history(
                     content="Your response threw a JSONDecodeError - please try again",
                     role="user",
@@ -178,7 +179,7 @@ class Agent:
             message.get("content").replace("\n", " "), 100
         )
         print_in_color(
-            f"{message.get('name', '')} ({message.get('role')}): {content_truncated}",
+            f"[{self.name}] {message.get('name', '')} ({message.get('role')}): {content_truncated}",
             Color.LIGHTBLACK_EX,
         )
 
@@ -256,20 +257,14 @@ class Agent:
             f"CHILD AGENT COMMUNICATION SESSION ACTIVE. DURING THIS SESSION, ALL [COMMUNICATE] CALLS WILL BE DIRECTED TO THE CHILD AGENT.",
             role="system",
         )
-        parent_communication = "Please execute your task. Tell me when you are done."
+        parent_communication = "Please execute your task. COMMUNICATE \"My task is done.\" to me when you are finished."
         while True:
             child_communication = child.get_response(
                 parent_communication, asker_name=self.name, tag="CHILD"
             )
             print(f"{name}: {child_communication}")
-            task_done = child.get_response(
-                "Is your task done? Answer with COMMUNICATE, yes/no only.",
-                asker_name=self.name,
-                tag="CHILD",
-            )
-            if "yes" in task_done.lower():
+            if "task is done" in child_communication.lower():
                 self.add_to_chat_history(child_communication, role="user", name=name)
-                self.add_to_chat_history("My task is done.", role="user", name=name)
                 break
             parent_communication = self.get_response(
                 child_communication, asker_name=name
