@@ -11,7 +11,7 @@ from agent.prompts import CLARIFICATION_PROMPT
 
 from llm_api import LlmApi, types_request
 import settings
-from agent.tools import run_command_line
+from agent.tools import run_command_line, list_directory_contents
 from text import print_in_color, Color, truncate_string
 
 
@@ -22,14 +22,15 @@ class Agent:
         self.name = name
 
         self.is_planner = is_planner
-        if is_planner:
-            self.add_initial_prompts(
-                [system_prompt, CLARIFICATION_PROMPT, PLANNER_ACTIONS_PROMPT]
-            )
-        else:
-            self.add_initial_prompts(
-                [system_prompt, CLARIFICATION_PROMPT, BASE_ACTIONS_PROMPT]
-            )
+        self.add_initial_prompts(
+            [
+                system_prompt,
+                CLARIFICATION_PROMPT,
+                PLANNER_ACTIONS_PROMPT,
+                # TODO: __pycache__ and .pytest_cache not ignored
+                f"Your work dir contents:\n{list_directory_contents('.')}",
+            ]
+        )
 
         self.start_greeting = "Hello! How can I help you today?"
         self.add_action_to_chat_history(

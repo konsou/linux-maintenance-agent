@@ -79,6 +79,8 @@ def read_gitignore(directory: str) -> List[str]:
 
 
 def should_ignore(path: str, patterns: List[str]) -> bool:
+    # .git dir should always be ignored
+    patterns.append(".git/")
     for pattern in patterns:
         if fnmatch.fnmatch(path, pattern) or fnmatch.fnmatch(
             os.path.basename(path), pattern
