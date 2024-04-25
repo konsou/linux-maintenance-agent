@@ -115,7 +115,7 @@ class Agent:
                     instructions=response_parsed["instructions"],
                 )
                 self.add_to_chat_history(
-                    content="You should PLAN next.",
+                    content="You should make sure that the agent actually completed its task.",
                     role="user",
                     name="Response parser",
                 )
