@@ -11,7 +11,7 @@ from agent.prompts import CLARIFICATION_PROMPT
 
 from llm_api import LlmApi, types_request
 import settings
-from agent.tools import run_command_line, list_directory_contents
+from tools import run_command_line, list_directory_contents
 from text import print_in_color, Color, truncate_string
 
 
@@ -257,7 +257,7 @@ class Agent:
             f"CHILD AGENT COMMUNICATION SESSION ACTIVE. DURING THIS SESSION, ALL [COMMUNICATE] CALLS WILL BE DIRECTED TO THE CHILD AGENT.",
             role="system",
         )
-        parent_communication = "Please execute your task. COMMUNICATE \"My task is done.\" to me when you are finished."
+        parent_communication = 'Please execute your task. COMMUNICATE "My task is done." to me when you are finished.'
         while True:
             child_communication = child.get_response(
                 parent_communication, asker_name=self.name, tag="CHILD"

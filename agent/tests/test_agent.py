@@ -42,7 +42,7 @@ class TestAgent(TestCase):
         mock_api.response_from_messages = MagicMock(return_value="test")
         settings.ALWAYS_SEND_SYSTEM_DATA = True
         with patch("settings.LLM_API", mock_api):
-            self.agent = Agent()
+            self.agent = Agent(name="Test Agent", system_prompt="You are a test agent")
 
     def test_delete_old_plans(self):
         plan1 = action_message_factory(
