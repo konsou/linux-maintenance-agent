@@ -6,5 +6,6 @@ psutil
 mypy
 pytest
 gitignorant
+pyfakefs
 
 git+https://github.com/konsou/llm-api.git
