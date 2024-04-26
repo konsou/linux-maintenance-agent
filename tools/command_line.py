@@ -3,7 +3,7 @@ import subprocess
 
 import settings
 import text
-from agent.consent import ask_execution_consent
+from tools.consent import ask_execution_consent
 from text import print_in_color, Color
 
 

@@ -6,7 +6,7 @@ import psutil
 
 import agent.actions
 from agent.actions import BASE_ACTIONS_PROMPT, PLANNER_ACTIONS_PROMPT, Actions
-from agent.consent import ask_data_send_consent
+from tools.consent import ask_data_send_consent
 from agent.prompts import CLARIFICATION_PROMPT
 
 from llm_api import LlmApi, types_request

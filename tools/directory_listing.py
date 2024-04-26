@@ -1,30 +1,22 @@
-import fnmatch
 import os
 from pathlib import Path
 from typing import List
 
+import gitignorant
 
-def read_gitignore(directory: str) -> List[str]:
+
+def read_gitignore(directory: str) -> List[gitignorant.Rule]:
     gitignore_path = Path(directory) / ".gitignore"
-    patterns = []
     if gitignore_path.exists():
-        with open(gitignore_path, "r") as file:
-            for line in file.readlines():
-                stripped_line = line.strip()
-                if stripped_line and not stripped_line.startswith("#"):
-                    patterns.append(stripped_line)
-    return patterns
+        with open(gitignore_path, "r", encoding="utf-8") as file:
+            return list(gitignorant.parse_gitignore_file(file))
+    return []
 
 
-def should_ignore(path: str, patterns: List[str]) -> bool:
+def should_ignore(path: str, patterns: List[gitignorant.Rule]) -> bool:
     # .git dir should always be ignored
-    patterns.append(".git/")
-    for pattern in patterns:
-        if fnmatch.fnmatch(path, pattern) or fnmatch.fnmatch(
-            os.path.basename(path), pattern
-        ):
-            return True
-    return False
+    patterns.append(gitignorant.Rule(negative=False, content=".git/"))
+    return gitignorant.check_path_match(rules=patterns, path=path)
 
 
 def list_directory_contents(directory: str) -> str:

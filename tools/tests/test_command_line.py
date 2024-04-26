@@ -12,7 +12,7 @@ class TestCommandLineCommon(TestCase):
     def setUp(self):
         consent_patcher = patch_decorator(
             module_being_tested=command_line,
-            decorator_patch_location="agent.consent.ask_execution_consent",
+            decorator_patch_location="tools.consent.ask_execution_consent",
         )
         consent_patcher.patch()
         self.addCleanup(consent_patcher.kill_patches)
@@ -65,7 +65,7 @@ class TestCommandLineWindows(TestCase):
 
         consent_patcher = patch_decorator(
             module_being_tested=command_line,
-            decorator_patch_location="agent.consent.ask_execution_consent",
+            decorator_patch_location="tools.consent.ask_execution_consent",
         )
         consent_patcher.patch()
         self.addCleanup(consent_patcher.kill_patches)
@@ -98,7 +98,7 @@ class TestCommandLineLinux(TestCase):
 
         consent_patcher = patch_decorator(
             module_being_tested=command_line,
-            decorator_patch_location="agent.consent.ask_execution_consent",
+            decorator_patch_location="tools.consent.ask_execution_consent",
         )
         consent_patcher.patch()
         self.addCleanup(consent_patcher.kill_patches)

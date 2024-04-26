@@ -5,5 +5,6 @@ black
 psutil
 mypy
 pytest
+gitignorant
 
 git+https://github.com/konsou/llm-api.git
