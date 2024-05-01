@@ -3,11 +3,11 @@ import subprocess
 
 import settings
 import text
-from tools.consent import ask_execution_consent
+from tools.consent import ask_execution_consent_explain_command
 from text import print_in_color, Color
 
 
-@ask_execution_consent
+@ask_execution_consent_explain_command
 def run_command_line(
     command: str,
     timeout: float = 30,

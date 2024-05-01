@@ -1,7 +1,7 @@
-from .consent import ask_execution_consent
+from .consent import ask_execution_consent_explain_command, ask_execution_consent
 
 
-@ask_execution_consent(explain_command=False)
+@ask_execution_consent
 def write_file(filename: str, content: str) -> str:
     try:
         with open(filename, "w", encoding="utf-8") as f:

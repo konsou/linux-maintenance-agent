@@ -4,7 +4,8 @@ from unittest.mock import patch, MagicMock
 
 import llm_api.abc
 import settings
-from agent import Agent, actions
+from agent.actions import types
+from agent.agent import Agent
 from llm_api import types_request
 
 
@@ -15,13 +16,13 @@ def message_factory(
 
 
 def action_message_factory(
-    action_data: dict[actions.Actions.__members__, str | dict]
+    action_data: dict[types.Actions.__members__, str | dict]
 ) -> types_request.Message:
     return message_factory(content=json.dumps(action_data, indent=2), role="assistant")
 
 
 def count_messages_by_action(
-    messages: list[types_request.Message], action: actions.Actions.__members__
+    messages: list[types_request.Message], action: types.Actions.__members__
 ) -> int:
     count = 0
     for message in messages:
