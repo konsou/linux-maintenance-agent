@@ -8,6 +8,7 @@ from llm_api import LlmApi, types_request
 import agent.actions
 import settings
 import tools
+import tools.write_file
 from agent.actions.parser import handle_action_from_response
 from agent.actions.prompts import BASE_ACTIONS_PROMPT, PLANNER_ACTIONS_PROMPT
 from agent.actions.types import ActionResponse, Actions
@@ -31,7 +32,7 @@ class Agent:
                 system_prompt,
                 CLARIFICATION_PROMPT,
                 actions_prompt,
-                f"Your work dir contents:\n{list_directory_contents('.')}",
+                f"Your work dir contents:\n{list_directory_contents(settings.AGENT_WORK_DIR)}",
             ]
         )
 
@@ -141,7 +142,7 @@ class Agent:
         return ""
 
     def action_write_file(self, response: ActionResponse) -> str:
-        result = tools.write_file(response["filename"], response["content"])
+        result = tools.write_file.write_file(response["filename"], response["content"])
         self.add_to_chat_history(content=result, role="user", name="Write file runner")
         self.add_to_chat_history(
             content="You've written to a file. You should PLAN next.",
