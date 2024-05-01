@@ -3,16 +3,19 @@ import platform
 import re
 
 import psutil
+from llm_api import LlmApi, types_request
 
 import agent.actions
-from agent.actions import BASE_ACTIONS_PROMPT, PLANNER_ACTIONS_PROMPT, Actions
-from tools.consent import ask_data_send_consent
-from agent.prompts import CLARIFICATION_PROMPT
-
-from llm_api import LlmApi, types_request
 import settings
-from tools import run_command_line, list_directory_contents
+import tools
+from agent.actions.parser import handle_action_from_response
+from agent.actions.prompts import BASE_ACTIONS_PROMPT, PLANNER_ACTIONS_PROMPT
+from agent.actions.types import ActionResponse, Actions
+from agent.confirmer import confirm_child_agent_done
+from agent.prompts import CLARIFICATION_PROMPT
 from text import print_in_color, Color, truncate_string
+from tools import run_command_line, list_directory_contents
+from tools.consent import ask_data_send_consent
 
 
 class Agent:
@@ -28,7 +31,6 @@ class Agent:
                 system_prompt,
                 CLARIFICATION_PROMPT,
                 actions_prompt,
-                # TODO: __pycache__ and .pytest_cache not ignored
                 f"Your work dir contents:\n{list_directory_contents('.')}",
             ]
         )
@@ -39,6 +41,14 @@ class Agent:
             role="assistant",
             name=self.name,
         )
+
+        self.action_handlers = {
+            Actions.PLAN.name: self.action_plan,
+            Actions.RUN_COMMAND_LINE.name: self.action_command_line,
+            Actions.WRITE_FILE.name: self.action_write_file,
+            Actions.SPAWN_AND_EXECUTE.name: self.action_spawn_and_execute,
+            Actions.COMMUNICATE.name: self.action_communicate,
+        }
 
     def get_response(
         self,
@@ -64,7 +74,9 @@ class Agent:
                 )
 
             try:
-                response_parsed = json.loads(response_stripped, strict=False)
+                response_parsed: ActionResponse = json.loads(
+                    response_stripped, strict=False
+                )
             except json.decoder.JSONDecodeError as e:
                 print_in_color(f"Error parsing response:\n{response}\n{e}", Color.RED)
                 self.add_to_chat_history(
@@ -76,55 +88,119 @@ class Agent:
 
             self.add_to_chat_history(content=response, role="assistant", name=self.name)
 
-            response_action = response_parsed.get("action")
-            if response_action not in Actions.__members__:
-                print_in_color(f"INVALID ACTION: {response_action}", Color.RED)
-                self.add_to_chat_history(
-                    content=f"INVALID ACTION: {response_action}",
-                    role="user",
-                    name="Response parser",
-                )
-                continue
-
-            if response_action == Actions.PLAN.name:
-                print(f"PLAN")
-                print(f"Main goal: {response_parsed.get('main_goal')}")
-                print(f"Steps:\n{response_parsed.get('steps')}")
-                self.delete_old_plans()
-                self.add_to_chat_history(
-                    content="You've updated your plan, good! What's next?",
-                    role="user",
-                    name="Response parser",
-                )
-                continue
-
-            if response_action == Actions.RUN_COMMAND_LINE.name:
-                print(response_action)
-                self.run_command_line(response_parsed["command"])
-                self.add_to_chat_history(
-                    content="You've ran a command. You should PLAN next.",
-                    role="user",
-                    name="Response parser",
-                )
-                continue
-
-            if response_action == Actions.SPAWN_AND_EXECUTE.name:
-                print(response_action)
-                self.spawn_agent_and_execute(
-                    name=response_parsed["name"],
-                    instructions=response_parsed["instructions"],
-                )
-                self.add_to_chat_history(
-                    content="You should make sure that the agent actually completed its task.",
-                    role="user",
-                    name="Response parser",
-                )
-                continue
-
-            if response_action == Actions.COMMUNICATE.name:
-                return response_parsed.get("content", "(NO CONTENT)")
+            action_result: str = handle_action_from_response(
+                response=response_parsed, handlers=self.action_handlers
+            )
+            # Empty string -> not COMMUNICATE, continue looping
+            # Non-empty string -> COMMUNICATE result, return
+            if action_result:
+                return action_result
 
         return self.handle_string_response(response)
+
+    def action_plan(self, response: ActionResponse) -> str:
+        print(f"Main goal: {response.get('main_goal')}")
+        print(f"Steps:\n{response.get('steps')}")
+        self.delete_old_plans()
+        self.add_to_chat_history(
+            content="You've updated your plan, good! What's next?",
+            role="user",
+            name="Response parser",
+        )
+        return ""
+
+    def action_communicate(self, response: ActionResponse) -> str:
+        return response.get("content", "(NO CONTENT)")
+
+    def action_command_line(self, response: ActionResponse) -> str:
+        command = response.get("command")
+        result = (
+            f"COMMAND LINE: Output and exit code for your command:\n"
+            f"---\n"
+            f"{run_command_line(command)}\n"
+            f"---"
+        )
+        self.add_to_chat_history(
+            content=result, role="user", name="Command line runner"
+        )
+        self.add_to_chat_history(
+            content="You've ran a command. You should PLAN next.",
+            role="user",
+            name="Response parser",
+        )
+        return ""
+
+    def action_invalid(self, response: ActionResponse) -> str:
+        response_action = response.get("action")
+        print_in_color(f"INVALID ACTION: {response_action}", Color.RED)
+        self.add_to_chat_history(
+            content=f"INVALID ACTION: {response_action}",
+            role="user",
+            name="Response parser",
+        )
+        return ""
+
+    def action_write_file(self, response: ActionResponse) -> str:
+        result = tools.write_file(response["filename"], response["content"])
+        self.add_to_chat_history(content=result, role="user", name="Write file runner")
+        self.add_to_chat_history(
+            content="You've written to a file. You should PLAN next.",
+            role="user",
+            name="Response parser",
+        )
+        return ""
+
+    def action_spawn_and_execute(self, response: ActionResponse) -> str:
+        """Spawn an agent to fulfill a task. Exits this function when the task is complete."""
+        name = response["name"]
+        instructions = response["instructions"]
+
+        child = Agent(name=name, system_prompt=instructions, is_planner=False)
+        self.add_to_chat_history(
+            f"Spawned a temporary child agent named {name}",
+            role="user",
+            name="Response parser",
+        )
+        self.add_to_chat_history(
+            f"CHILD AGENT COMMUNICATION SESSION ACTIVE. DURING THIS SESSION, "
+            f"ALL [COMMUNICATE] CALLS WILL BE DIRECTED TO THE CHILD AGENT.",
+            role="system",
+        )
+        parent_communication = 'Please execute your task. COMMUNICATE "My task is done." to me when you are finished.'
+        while True:
+            child_communication = child.get_response(
+                parent_communication, asker_name=self.name, tag="CHILD"
+            )
+            print(f"{name}: {child_communication}")
+            if "task is done" in child_communication.lower():
+
+                task_confirmed = confirm_child_agent_done(instructions)
+                if not task_confirmed:
+                    child.add_to_chat_history(
+                        "I checked and you did not actually execute your task. I am disappointed. "
+                        "You must be truthful. Use your actions to execute your task. "
+                        "Do not lie. Do not hallucinate.",
+                        name="Result checker",
+                        role="user",
+                    )
+                    continue
+
+                # Task confirmed
+                self.add_to_chat_history(child_communication, role="user", name=name)
+                break
+
+            parent_communication = self.get_response(
+                child_communication, asker_name=name
+            )
+            print(f"{self.name}: {parent_communication}")
+            input("Press ENTER to continue")
+
+        self.add_to_chat_history(
+            f"CHILD AGENT COMMUNICATION SESSION ENDED. CHILD AGENT TERMINATED. "
+            f"[COMMUNICATE] CALLS ARE ONCE MORE DIRECTED TO THE USER.",
+            role="system",
+        )
+        return ""
 
     def strip_text_outside_curly_braces(self, text: str) -> str:
         # Matches everything from the first { to the last } including nested ones
@@ -135,7 +211,7 @@ class Agent:
 
     def add_action_to_chat_history(
         self,
-        action: dict[agent.actions.Actions.__members__, str | dict],
+        action: dict[agent.actions.types.Actions.__members__, str | dict],
         role: types_request.MessageRole,
         name: str | None = None,
     ):
@@ -206,17 +282,6 @@ class Agent:
             return
         self.chat_history.append(message)
 
-    def run_command_line(self, command: str):
-        result = (
-            f"COMMAND LINE: Output and exit code for your command:\n"
-            f"---\n"
-            f"{run_command_line(command)}\n"
-            f"---"
-        )
-        self.add_to_chat_history(
-            content=result, role="user", name="Command line runner"
-        )
-
     def handle_string_response(self, response: str) -> str:
         self.add_to_chat_history(content=response, role="assistant", name=self.name)
         return response
@@ -244,35 +309,3 @@ class Agent:
     def add_initial_prompts(self, prompts: list[str]):
         for prompt in prompts:
             self.add_to_chat_history(content=prompt, role="system")
-
-    def spawn_agent_and_execute(self, name: str, instructions: str):
-        """Spawn an agent to fulfill a task. Exits this function when the task is complete."""
-        child = Agent(name=name, system_prompt=instructions, is_planner=False)
-        self.add_to_chat_history(
-            f"Spawned a temporary child agent named {name}",
-            role="user",
-            name="Response parser",
-        )
-        self.add_to_chat_history(
-            f"CHILD AGENT COMMUNICATION SESSION ACTIVE. DURING THIS SESSION, ALL [COMMUNICATE] CALLS WILL BE DIRECTED TO THE CHILD AGENT.",
-            role="system",
-        )
-        parent_communication = 'Please execute your task. COMMUNICATE "My task is done." to me when you are finished.'
-        while True:
-            child_communication = child.get_response(
-                parent_communication, asker_name=self.name, tag="CHILD"
-            )
-            print(f"{name}: {child_communication}")
-            if "task is done" in child_communication.lower():
-                self.add_to_chat_history(child_communication, role="user", name=name)
-                break
-            parent_communication = self.get_response(
-                child_communication, asker_name=name
-            )
-            print(f"{self.name}: {parent_communication}")
-            input("Press ENTER to continue")
-
-        self.add_to_chat_history(
-            f"CHILD AGENT COMMUNICATION SESSION ENDED. CHILD AGENT TERMINATED. [COMMUNICATE] CALLS ARE ONCE MORE DIRECTED TO THE USER.",
-            role="system",
-        )

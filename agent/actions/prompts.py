@@ -1,5 +1,7 @@
 from enum import Enum, auto
 
+# TODO: rehaul the whole shit to be good & use built-in tool functionality
+
 
 ACTIONS_HEADER = """You have these actions available to you:
 
@@ -46,6 +48,21 @@ Example:
 }
 """
 
+ACTIONS_WRITE_FILE = """
+# WRITE_FILE
+## Write a file to your workspace. If the file already exists, it will be overwritten.
+Attributes:
+- "filename" (string) (required) - the name of the file to write, including path 
+- "content" (string) (required) - contents of the file 
+
+Example:
+{
+  "action": "WRITE_FILE",
+  "filename": "subdir/test.txt",
+  "content": "Hello World"
+}
+"""
+
 ACTIONS_SPAWN_AND_EXECUTE = """
 # SPAWN_AND_EXECUTE
 ## Spawn a temporary child AI agent to execute a task in your plan
@@ -66,19 +83,13 @@ Your response must contain only one action. Your response MUST be JSON only. Don
 """
 
 
-class Actions(Enum):
-    PLAN = auto()
-    COMMUNICATE = auto()
-    RUN_COMMAND_LINE = auto()
-    SPAWN_AND_EXECUTE = auto()
-
-
 BASE_ACTIONS_PROMPT = "\n".join(
     [
         ACTIONS_HEADER,
         ACTIONS_PLAN,
         ACTIONS_COMMUNICATE,
         ACTIONS_COMMAND_LINE,
+        ACTIONS_WRITE_FILE,
         ACTIONS_FOOTER,
     ]
 )
@@ -88,6 +99,7 @@ PLANNER_ACTIONS_PROMPT = "\n".join(
         ACTIONS_PLAN,
         ACTIONS_COMMUNICATE,
         ACTIONS_COMMAND_LINE,
+        ACTIONS_WRITE_FILE,
         ACTIONS_SPAWN_AND_EXECUTE,
         ACTIONS_FOOTER,
     ]
