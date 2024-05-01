@@ -58,10 +58,11 @@ def confirm_child_agent_done(instructions: str) -> bool:
     }
 
     while True:
-        llm_response = json.loads(
-            LLM_API.response_from_messages(messages, tag="CONFIRMER"), strict=False
-        )
+        llm_response: str = LLM_API.response_from_messages(messages, tag="CONFIRMER")
+        llm_response_parsed = json.loads(llm_response, strict=False)
         messages.append({"role": "assistant", "content": llm_response})
-        action_result: str = handle_action_from_response(llm_response, action_handlers)
+        action_result: str = handle_action_from_response(
+            llm_response_parsed, action_handlers
+        )
         if action_result:
             return "yes" in action_result
