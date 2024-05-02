@@ -27,12 +27,14 @@ class Agent:
 
         self.is_planner = is_planner
         actions_prompt = PLANNER_ACTIONS_PROMPT if is_planner else BASE_ACTIONS_PROMPT
+        work_dir_contents = list_directory_contents(settings.AGENT_WORK_DIR)
+        work_dir_contents = "(empty)" if not work_dir_contents else work_dir_contents
         self.add_initial_prompts(
             [
                 system_prompt,
                 CLARIFICATION_PROMPT,
                 actions_prompt,
-                f"Your work dir contents:\n{list_directory_contents(settings.AGENT_WORK_DIR)}",
+                f"Your work dir contents:\n{work_dir_contents}",
             ]
         )
 
