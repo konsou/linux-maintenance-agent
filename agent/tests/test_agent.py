@@ -1,49 +1,29 @@
-import json
-from unittest import TestCase
+import os.path
+
+from pyfakefs.fake_filesystem_unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 import llm_api.abc
+
 import settings
-from agent.actions import types
-from agent.agent import Agent
-from llm_api import types_request
-
-
-def message_factory(
-    content: str, role: types_request.MessageRole
-) -> types_request.Message:
-    return types_request.Message(content=content, role=role)
-
-
-def action_message_factory(
-    action_data: dict[types.Actions.__members__, str | dict]
-) -> types_request.Message:
-    return message_factory(content=json.dumps(action_data, indent=2), role="assistant")
-
-
-def count_messages_by_action(
-    messages: list[types_request.Message], action: types.Actions.__members__
-) -> int:
-    count = 0
-    for message in messages:
-        content = message["content"]
-        try:
-            content_parsed = json.loads(content, strict=False)
-        except json.JSONDecodeError:
-            # Not an action - maybe just a string
-            continue
-        if content_parsed.get("action", "") == action:
-            count += 1
-    return count
+from agent import agent
+from agent.tests.helpers_agent import (
+    action_message_factory,
+    count_messages_by_action,
+    agent_has_message_containing,
+)
 
 
 class TestAgent(TestCase):
     def setUp(self):
+        self.setUpPyfakefs()
         mock_api = MagicMock(spec=llm_api.abc.LlmApi)
         mock_api.response_from_messages = MagicMock(return_value="test")
         settings.ALWAYS_SEND_SYSTEM_DATA = True
         with patch("settings.LLM_API", mock_api):
-            self.agent = Agent(name="Test Agent", system_prompt="You are a test agent")
+            self.agent = agent.Agent(
+                name="Test Agent", system_prompt="You are a test agent"
+            )
 
     def test_delete_old_plans(self):
         plan1 = action_message_factory(
@@ -64,3 +44,20 @@ class TestAgent(TestCase):
         self.assertEqual(
             plan2, self.agent.chat_history[-1], "Latest plan should match the last one"
         )
+
+    def test_correct_work_dir_used(self):
+        parent_dir = "/home/test/parent"
+        work_dir = "/home/test/parent/workdir"
+        parent_file = "very_secret"
+        test_file_1 = "test1.txt"
+        test_file_2 = "test2.py"
+        self.fs.create_dir(work_dir)
+        self.fs.create_file(os.path.join(parent_dir, parent_file))
+        self.fs.create_file(os.path.join(work_dir, test_file_1))
+        self.fs.create_file(os.path.join(work_dir, test_file_2))
+
+        with patch("settings.AGENT_WORK_DIR", work_dir):
+            a = agent.Agent("test name", "test prompt")
+            self.assertFalse(agent_has_message_containing(a, parent_file))
+            self.assertTrue(agent_has_message_containing(a, test_file_1, role="system"))
+            self.assertTrue(agent_has_message_containing(a, test_file_2, role="system"))
