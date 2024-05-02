@@ -1,4 +1,5 @@
 import json
+from typing import NamedTuple
 
 import llm_api.types_request
 
@@ -20,12 +21,22 @@ CONFIRMER_ACTIONS_PROMPT = (
 # TODO: much duplicate - just make another Agent?
 
 
-def confirm_child_agent_done(instructions: str) -> bool:
+class ConfirmResult(NamedTuple):
+    result: bool
+    reason: str = ""
+
+    def __bool__(self) -> bool:
+        return self.result
+
+
+def confirm_child_agent_done(instructions: str) -> ConfirmResult:
     confirmer_base_prompt = (
         "An AI agent claims to have completed these instructions:\n\n"
         f'"{instructions}"\n\n'
         f"Please check if the agent has actually done this. Use your tools for this.\n\n"
-        f'When you are finished checking, COMMUNICATE "CHECK FINISHED - RESULT: [YES or NO]"'
+        f"When you are finished checking, COMMUNICATE:\n"
+        f'"CHECK FINISHED - RESULT: [YES or NO]\n'
+        f'(reason on the next line if the result is NO)"'
     )
     messages: list[llm_api.types_request.Message] = [
         {"role": "system", "content": CONFIRMER_ACTIONS_PROMPT},
@@ -65,4 +76,15 @@ def confirm_child_agent_done(instructions: str) -> bool:
             llm_response_parsed, action_handlers
         )
         if action_result:
-            return "yes" in action_result
+            action_result_lines = action_result.split("\n")
+            if "yes" in action_result_lines.pop(0):
+                return ConfirmResult(True)
+            if action_result_lines:
+                return ConfirmResult(False, "\n".join(action_result_lines))
+            messages.append(
+                {
+                    "role": "user",
+                    "content": "You didn't specify a reason on the next line. "
+                    "Please respond according to your instructions.",
+                }
+            )

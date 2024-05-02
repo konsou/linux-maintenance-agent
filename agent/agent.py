@@ -182,7 +182,9 @@ class Agent:
                     child.add_to_chat_history(
                         "I checked and you did not actually execute your task. I am disappointed. "
                         "You must be truthful. Use your actions to execute your task. "
-                        "Do not lie. Do not hallucinate.",
+                        "Do not lie. Do not hallucinate.\n\n"
+                        "Reason:\n"
+                        f"{task_confirmed.reason}",
                         name="Result checker",
                         role="user",
                     )
