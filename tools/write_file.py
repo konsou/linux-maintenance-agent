@@ -1,4 +1,4 @@
-from .consent import ask_execution_consent_explain_command, ask_execution_consent
+from .consent import ask_execution_consent
 
 
 @ask_execution_consent

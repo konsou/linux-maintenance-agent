@@ -1,5 +1,3 @@
-from enum import Enum, auto
-
 # TODO: rehaul the whole shit to be good & use built-in tool functionality
 
 
