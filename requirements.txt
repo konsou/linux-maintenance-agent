@@ -7,5 +7,6 @@ mypy
 pytest
 gitignorant
 pyfakefs
+pre-commit
 
 git+https://github.com/konsou/llm-api.git
