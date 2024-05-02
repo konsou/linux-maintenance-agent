@@ -70,6 +70,12 @@ class TestDirectoryListing(unittest.TestCase):
             )
             self.assertEqual(expected_result, result)
 
+    def test_return_empty_string_when_called_with_none(self):
+        self.assertEqual("", list_directory_contents(None))
+
+    def test_return_empty_string_when_called_with_empty_string(self):
+        self.assertEqual("", list_directory_contents(""))
+
 
 if __name__ == "__main__":
     unittest.main()

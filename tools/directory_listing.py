@@ -4,6 +4,8 @@ from typing import List
 
 import gitignorant
 
+from text import print_in_color, Color
+
 
 def read_gitignore(directory: str) -> List[gitignorant.Rule]:
     gitignore_path = Path(directory) / ".gitignore"
@@ -19,7 +21,14 @@ def should_ignore(path: str, patterns: List[gitignorant.Rule]) -> bool:
     return gitignorant.check_path_match(rules=patterns, path=path)
 
 
-def list_directory_contents(directory: str) -> str:
+def list_directory_contents(directory: str | None = None) -> str:
+    if not directory:
+        print_in_color(
+            f'list_directory_contents called with "{directory}", returning empty string',
+            Color.YELLOW,
+        )
+        return ""
+
     directory_path = Path(directory)
     ignore_patterns = read_gitignore(directory)
     result = []
