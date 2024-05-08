@@ -9,6 +9,7 @@ import tools.write_file
 
 class TestWriteFile(TestCase):
     def setUp(self):
+        os.environ["_PROGRAMMER_AGENT_TESTING_SKIP_CONSENT"] = "1"
         self.setUpPyfakefs()
 
     def test_write_file_raises_error_if_work_dir_none(self):

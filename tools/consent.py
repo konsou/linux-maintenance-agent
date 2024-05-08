@@ -1,8 +1,10 @@
+import os
 from functools import wraps
 import json
 
 import llm_api
 import settings
+from text import print_in_color, Color
 
 
 def ask_data_send_consent(func):
@@ -18,7 +20,13 @@ def ask_data_send_consent(func):
 
         print(f"The assistant would like to have this information:")
         print(result_string)
-        consent = input("Is it ok to send this data to the assistant? (y/N): ").lower()
+        if os.getenv("_PROGRAMMER_AGENT_TESTING_SKIP_CONSENT") == "1":
+            print_in_color(f"TESTING MODE - SKIPPING CONSENT QUERY", Color.YELLOW)
+            consent = "y"
+        else:
+            consent = input(
+                "Is it ok to send this data to the assistant? (y/N): "
+            ).lower()
         if consent != "y":
             print(f"Ok, not sending data")
             return {}
@@ -38,7 +46,11 @@ def ask_execution_consent(func):
         )
         func_call_str = f"{func.__name__}({', '.join(args_and_kwargs)})"
         print(func_call_str)
-        consent = input("Execute? (y/N): ").lower()
+        if os.getenv("_PROGRAMMER_AGENT_TESTING_SKIP_CONSENT") == "1":
+            print_in_color(f"TESTING MODE - SKIPPING CONSENT QUERY", Color.YELLOW)
+            consent = "y"
+        else:
+            consent = input("Execute? (y/N): ").lower()
         if consent != "y":
             print(f"Ok, not executing")
             return "User denied execution"
@@ -59,7 +71,11 @@ def ask_execution_consent_explain_command(func):
         func_call_str = f"{func.__name__}({', '.join(args_and_kwargs)})"
         print(func_call_str)
         print(f"Explanation: {_explain_command(func_call_str)}")
-        consent = input("Execute? (y/N): ").lower()
+        if os.getenv("_PROGRAMMER_AGENT_TESTING_SKIP_CONSENT") == "1":
+            print_in_color(f"TESTING MODE - SKIPPING CONSENT QUERY", Color.YELLOW)
+            consent = "y"
+        else:
+            consent = input("Execute? (y/N): ").lower()
         if consent != "y":
             print(f"Ok, not executing")
             return "User denied execution"

@@ -5,7 +5,7 @@ from text import print_in_color, Color
 from .consent import ask_execution_consent
 
 
-# TODO: add consent query? Problem: patching for tests is a pain in the ass >_>
+@ask_execution_consent
 def write_file(filename: str, content: str, work_dir: str | None = None) -> str:
     work_dir = work_dir or settings.AGENT_WORK_DIR
     if work_dir is None:

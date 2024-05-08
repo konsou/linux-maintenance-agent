@@ -8,6 +8,7 @@ import tools.replace_in_file
 
 class TestReplaceInFile(TestCase):
     def setUp(self):
+        os.environ["_PROGRAMMER_AGENT_TESTING_SKIP_CONSENT"] = "1"
         self.setUpPyfakefs()
 
     def test_replace_in_file(self):

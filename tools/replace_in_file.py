@@ -2,9 +2,10 @@ import os
 import re
 
 import settings
+from tools.consent import ask_execution_consent
 
 
-# TODO: add consent query? Problem: patching for tests is a pain in the ass >_>
+@ask_execution_consent
 def replace_in_file(
     pattern, repl, file_path: str, count=0, flags=0, work_dir: str | None = None
 ):
