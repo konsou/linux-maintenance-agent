@@ -35,9 +35,14 @@ Example:
 ACTIONS_COMMAND_LINE = """
 # RUN_COMMAND_LINE
 ## Run a command line command in your workspace
-Each command is executed in a separate process. Use full paths when accessing files and directories.
+- Each command is executed in a separate process 
+- Use full paths when accessing files and directories  
+- Will time out after 30 seconds - avoid long-running commands
+- The user is asked for their consent before executing the command 
+- SUPPORTS ONLY CLI COMMANDS THAT OUTPUT TEXT - NO SUPPORT FOR GRAPHICS
+- Uses PowerShell on Windows and the default shell on Linux
 Attributes:
-- "command" (string) (required) - the command to run. The user is asked for their consent before executing the command. RUN ONLY CLI COMMANDS THAT OUTPUT TEXT. On Windows this uses PowerShell. On Linux the default shell is used.
+- "command" (string) (required) - the command to run. 
 
 Example:
 {
