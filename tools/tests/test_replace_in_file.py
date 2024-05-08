@@ -3,7 +3,6 @@ from unittest.mock import patch
 
 from pyfakefs.fake_filesystem_unittest import TestCase
 
-from test_helpers import patch_decorator
 import tools.replace_in_file
 
 

@@ -10,21 +10,19 @@ import tools.write_file
 class TestWriteFile(TestCase):
     def setUp(self):
         self.setUpPyfakefs()
-        consent_patcher = patch_decorator(
-            module_being_tested=tools.write_file,
-            decorator_patch_location="tools.consent.ask_execution_consent",
-        )
-        consent_patcher.patch()
-        self.addCleanup(consent_patcher.kill_patches)
 
-    def test_write_file(self):
-        filename = "test-file.txt"
-        contents = "Hello World"
-        tools.write_file.write_file(filename, contents)
-        self.assertTrue(os.path.exists(filename), "File doesn't exist")
-        with open(filename, "r") as f:
-            file_contents = f.read()
-        self.assertEqual(contents, file_contents, "File contents do not match")
+    def test_write_file_raises_error_if_work_dir_none(self):
+        with patch("settings.AGENT_WORK_DIR", None):
+            with self.assertRaises(
+                ValueError,
+                msg="Must raise an error if settings.AGENT_WORK_DIR is None and no work_dir argument supplied",
+            ):
+                tools.write_file.write_file("testfile", "contents")
+            with self.assertRaises(
+                ValueError,
+                msg="Must raise an error if settings.AGENT_WORK_DIR is None and work_dir argument is None",
+            ):
+                tools.write_file.write_file("testfile", "contents", work_dir=None)
 
     def test_write_file_uses_default_work_dir(self):
         work_dir = "/home/test/workdir"

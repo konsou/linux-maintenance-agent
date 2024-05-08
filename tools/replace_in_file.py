@@ -4,6 +4,7 @@ import re
 import settings
 
 
+# TODO: add consent query? Problem: patching for tests is a pain in the ass >_>
 def replace_in_file(
     pattern, repl, file_path: str, count=0, flags=0, work_dir: str | None = None
 ):
