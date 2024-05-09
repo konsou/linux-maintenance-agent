@@ -1,5 +1,6 @@
 Agent requested these:
 
+- Full logging of messages
 
 1. A function to automatically gather detailed system information like model, specs, installed apps/drivers etc. This would reduce the need to run multiple commands and prevent making incorrect assumptions.
 

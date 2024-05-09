@@ -1,3 +1,5 @@
+import logging
+
 from llm_api import OpenRouterAPI, GroqApi
 
 ALWAYS_SEND_SYSTEM_DATA = True
@@ -11,3 +13,4 @@ LLM_MODEL = "llama3-70b-8192"
 # LLM_MODEL = "microsoft/wizardlm-2-8x22b"
 LLM_API = GroqApi(model=LLM_MODEL)
 AGENT_WORK_DIR: str | None = None
+LOG_LEVEL = logging.DEBUG
