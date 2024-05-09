@@ -6,6 +6,7 @@ class Actions(Enum):
     COMMUNICATE = auto()
     RUN_COMMAND_LINE = auto()
     WRITE_FILE = auto()
+    REPLACE_IN_FILE = auto()
     SPAWN_AND_EXECUTE = auto()
     INVALID = auto()
 

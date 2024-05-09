@@ -66,6 +66,23 @@ Example:
 }
 """
 
+ACTIONS_REPLACE_IN_FILE = """
+# REPLACE_IN_FILE
+## Replace text in file in-place
+Attributes:
+- "pattern" (string) (required) - regexp pattern (python style) to replace 
+- "repl" (string) (required) - new text that will replace the one matched by pattern
+- "filename" (string) (required) - the name of the file to write, including path
+
+Example - this will replace all occurrences of "red" with "blue" in the file:
+{
+  "action": "REPLACE_IN_FILE",
+  "pattern": "red",
+  "repl": "blue",
+  "filename": "subdir/test.txt",
+}
+"""
+
 ACTIONS_SPAWN_AND_EXECUTE = """
 # SPAWN_AND_EXECUTE
 ## Spawn a temporary child AI agent to execute a task in your plan
@@ -93,6 +110,7 @@ BASE_ACTIONS_PROMPT = "\n".join(
         ACTIONS_COMMUNICATE,
         ACTIONS_COMMAND_LINE,
         ACTIONS_WRITE_FILE,
+        ACTIONS_REPLACE_IN_FILE,
         ACTIONS_FOOTER,
     ]
 )
@@ -103,6 +121,7 @@ PLANNER_ACTIONS_PROMPT = "\n".join(
         ACTIONS_COMMUNICATE,
         ACTIONS_COMMAND_LINE,
         ACTIONS_WRITE_FILE,
+        ACTIONS_REPLACE_IN_FILE,
         ACTIONS_SPAWN_AND_EXECUTE,
         ACTIONS_FOOTER,
     ]

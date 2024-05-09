@@ -6,6 +6,7 @@ from .consent import ask_execution_consent
 
 
 @ask_execution_consent
+# TODO: don't ask consent for files created by agent
 def write_file(filename: str, content: str, work_dir: str | None = None) -> str:
     work_dir = work_dir or settings.AGENT_WORK_DIR
     if work_dir is None:
@@ -18,6 +19,7 @@ def write_file(filename: str, content: str, work_dir: str | None = None) -> str:
     try:
         with open(full_path, "w", encoding="utf-8") as f:
             f.write(content)
+            bytes_written = f.tell()
     except OSError as e:
         return f"Cannot write file {filename}: {e}"
-    return f"File {filename} has been written successfully."
+    return f"{bytes_written} bytes written to file {filename}."

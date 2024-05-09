@@ -19,6 +19,14 @@ class TestReplaceInFile(TestCase):
             file_contents = f.read()
         self.assertEqual("Roses are blue, violets are blue", file_contents)
 
+    def test_replace_multiple(self):
+        filename = "/home/test/testfile"
+        self.fs.create_file(filename, contents="Roses are red,\nviolets are blue")
+        tools.replace_in_file.replace_in_file("are", "ARR", filename, work_dir="/test")
+        with open(filename, "r", encoding="utf-8") as f:
+            file_contents = f.read()
+        self.assertEqual("Roses ARR red,\nviolets ARR blue", file_contents)
+
     def test_replace_in_file_uses_default_work_dir(self):
         work_dir = "/home/test/workdir"
         test_file_name = "test_file.txt"

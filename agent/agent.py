@@ -8,6 +8,7 @@ from llm_api import LlmApi, types_request
 import agent.actions
 import settings
 import tools
+import tools.replace_in_file
 import tools.write_file
 from agent.actions.parser import handle_action_from_response
 from agent.actions.prompts import BASE_ACTIONS_PROMPT, PLANNER_ACTIONS_PROMPT
@@ -49,6 +50,7 @@ class Agent:
             Actions.PLAN.name: self.action_plan,
             Actions.RUN_COMMAND_LINE.name: self.action_command_line,
             Actions.WRITE_FILE.name: self.action_write_file,
+            Actions.REPLACE_IN_FILE.name: self.action_replace_in_file,
             Actions.SPAWN_AND_EXECUTE.name: self.action_spawn_and_execute,
             Actions.COMMUNICATE.name: self.action_communicate,
         }
@@ -145,6 +147,18 @@ class Agent:
 
     def action_write_file(self, response: ActionResponse) -> str:
         result = tools.write_file.write_file(response["filename"], response["content"])
+        self.add_to_chat_history(content=result, role="user", name="Write file runner")
+        self.add_to_chat_history(
+            content="You've written to a file. You should PLAN next.",
+            role="user",
+            name="Response parser",
+        )
+        return ""
+
+    def action_replace_in_file(self, response: ActionResponse) -> str:
+        result = tools.replace_in_file.replace_in_file(
+            response["pattern"], response["repl"], response["filename"]
+        )
         self.add_to_chat_history(content=result, role="user", name="Write file runner")
         self.add_to_chat_history(
             content="You've written to a file. You should PLAN next.",
