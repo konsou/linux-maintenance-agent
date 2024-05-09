@@ -1,10 +1,9 @@
+import logging
 import os
 from pathlib import Path
 from typing import List
 
 import gitignorant
-
-from text import print_in_color, Color
 
 
 def read_gitignore(directory: str) -> List[gitignorant.Rule]:
@@ -23,9 +22,8 @@ def should_ignore(path: str, patterns: List[gitignorant.Rule]) -> bool:
 
 def list_directory_contents(directory: str | None = None) -> str:
     if not directory:
-        print_in_color(
+        logging.warning(
             f'list_directory_contents called with "{directory}", returning empty string',
-            Color.YELLOW,
         )
         return ""
 

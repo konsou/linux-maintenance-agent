@@ -3,6 +3,7 @@ import logging
 import os.path
 from logging.handlers import RotatingFileHandler
 
+import colorama
 from colorama import Fore, Style
 
 from utils import tuple_get
@@ -13,16 +14,20 @@ class ColorFormatter(logging.Formatter):
         super().__init__(*args, **kwargs)
         self.format_string = tuple_get(args, 0) or kwargs.get("fmt")
 
-        self.formats = {
-            logging.DEBUG: Fore.LIGHTBLACK_EX + self.format_string + Style.RESET_ALL,
-            logging.INFO: Fore.WHITE + self.format_string + Style.RESET_ALL,
-            logging.WARNING: Fore.YELLOW + self.format_string + Style.RESET_ALL,
-            logging.ERROR: Fore.RED + self.format_string + Style.RESET_ALL,
-            logging.CRITICAL: Fore.LIGHTRED_EX + self.format_string + Style.RESET_ALL,
+        self.color_by_level = {
+            logging.DEBUG: Fore.LIGHTBLACK_EX,
+            logging.INFO: Fore.WHITE,
+            logging.WARNING: Fore.YELLOW,
+            logging.ERROR: Fore.RED,
+            logging.CRITICAL: Fore.LIGHTRED_EX,
         }
 
     def format(self, record):
-        log_fmt = self.formats.get(record.levelno)
+        # TODO: truncate long records here
+        color = getattr(record, "ansi_color", None) or self.color_by_level.get(
+            record.levelno, Fore.WHITE
+        )
+        log_fmt = f"{color}{self.format_string}{Style.RESET_ALL}"
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
 
@@ -66,8 +71,8 @@ def setup_logger(level: int):
 if __name__ == "__main__":
     setup_logger(logging.DEBUG)
     logger = logging.getLogger()
-    logger.debug("This is a debug message")
-    logger.info("This is an info message")
+    logger.debug("This is a debug message", extra={"test": "extra"})
+    logger.info("This is an info message", extra={"ansi_color": Fore.GREEN})
     logger.warning("This is a warning message")
     logger.error("This is an error message")
     logger.critical("This is a critical message")

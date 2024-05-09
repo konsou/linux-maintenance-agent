@@ -1,7 +1,7 @@
+import logging
 import os.path
 
 import settings
-from text import print_in_color, Color
 from .consent import ask_execution_consent
 
 
@@ -15,7 +15,7 @@ def write_file(filename: str, content: str, work_dir: str | None = None) -> str:
         )
 
     full_path = os.path.join(work_dir, filename)
-    print_in_color(f"Writing file {full_path}", Color.LIGHTBLACK_EX)
+    logging.debug(f"Writing file {full_path}")
     try:
         with open(full_path, "w", encoding="utf-8") as f:
             f.write(content)

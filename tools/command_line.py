@@ -1,10 +1,11 @@
+import logging
 import platform
 import subprocess
 
+import colorama
+
 import settings
-import text
 from tools.consent import ask_execution_consent_explain_command
-from text import print_in_color, Color
 
 
 @ask_execution_consent_explain_command
@@ -29,14 +30,11 @@ def run_command_line(
         if work_dir is not None:
             command = f"cd {work_dir};{command}"
 
-    print(f'Running command "{command}"...')
+    logging.info(f'Running command "{command}"...')
 
-    def _format_and_print_output(
-        output: str, exit_code: int, color: str = text.Fore.WHITE
-    ) -> str:
+    def _format_output(output: str, exit_code: int) -> str:
         output = output.strip() if output.strip() else "(no output)"
         text_ = f"{output}\nProcess exited with code {exit_code}"
-        print_in_color(text_, color=color)
         return text_
 
     try:
@@ -50,13 +48,20 @@ def run_command_line(
             timeout=timeout,
         )
 
-        return _format_and_print_output(
-            output=result.stdout, exit_code=result.returncode, color=Color.GREEN
+        formatted_result = _format_output(
+            output=result.stdout, exit_code=result.returncode
         )
+        logging.info(
+            formatted_result,
+            extra={"ansi_color": colorama.Fore.GREEN},
+        )
+        return formatted_result
 
     except subprocess.CalledProcessError as e:
-        return _format_and_print_output(
-            output=e.stdout, exit_code=e.returncode, color=Color.RED
-        )
+        formatted_result = _format_output(output=e.stdout, exit_code=e.returncode)
+        logging.error(formatted_result)
+        return formatted_result
     except subprocess.TimeoutExpired as e:
-        return _format_and_print_output(output=str(e), exit_code=1, color=Color.RED)
+        formatted_result = _format_output(output=str(e), exit_code=1)
+        logging.error(formatted_result)
+        return formatted_result
