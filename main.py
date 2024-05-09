@@ -5,6 +5,8 @@ import settings
 import settings_logging
 from chat_session import chat_session
 
+logger = logging.getLogger("main")
+
 
 def main():
     try:
@@ -19,10 +21,10 @@ def main():
 
         if args.work_dir:
             settings.AGENT_WORK_DIR = args.work_dir
-            logging.info(f"Using work dir: {args.work_dir}")
+            logger.info(f"Using work dir: {args.work_dir}")
         chat_session()
     except KeyboardInterrupt:
-        logging.info("Ctrl-C pressed, exiting...")
+        logger.info("Ctrl-C pressed, exiting...")
 
 
 if __name__ == "__main__":

@@ -3,9 +3,9 @@ import logging
 import os.path
 from logging.handlers import RotatingFileHandler
 
-import colorama
 from colorama import Fore, Style
 
+from text import truncate_string
 from utils import tuple_get
 
 
@@ -24,10 +24,12 @@ class ColorFormatter(logging.Formatter):
 
     def format(self, record):
         # TODO: truncate long records here
+        record.msg = truncate_string(record.msg, 100)
         color = getattr(record, "ansi_color", None) or self.color_by_level.get(
             record.levelno, Fore.WHITE
         )
-        log_fmt = f"{color}{self.format_string}{Style.RESET_ALL}"
+        time_fmt = self.formatTime(record, self.datefmt)
+        log_fmt = f"{color}{time_fmt} {self.format_string}{Style.RESET_ALL}"
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
 
@@ -53,15 +55,13 @@ def setup_logger(level: int):
     console_handler.setLevel(level)
 
     # Create a formatter for the log messages
-    format = (
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
-    )
-    formatter = logging.Formatter(format)
-    color_formatter = ColorFormatter(format)
+    base_format = "[%(name)s] [%(levelname)s] %(message)s"
+    file_formatter = logging.Formatter(f"[%(asctime)s] {base_format}")
+    console_formatter = ColorFormatter(base_format, datefmt="[%H:%M:%S]")
 
     # Attach the formatter to the handlers
-    file_handler.setFormatter(formatter)
-    console_handler.setFormatter(color_formatter)
+    file_handler.setFormatter(file_formatter)
+    console_handler.setFormatter(console_formatter)
 
     # Add the handlers to the logger
     logger.addHandler(file_handler)

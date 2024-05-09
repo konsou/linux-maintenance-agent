@@ -26,6 +26,7 @@ class Agent:
         self.api: LlmApi = settings.LLM_API
         self.chat_history: list[types_request.Message] = []
         self.name = name
+        self.logger = logging.getLogger(f"{self.__class__.__name__}.{self.name}")
 
         self.is_planner = is_planner
         actions_prompt = PLANNER_ACTIONS_PROMPT if is_planner else BASE_ACTIONS_PROMPT
@@ -71,7 +72,7 @@ class Agent:
 
             response_stripped = self.strip_text_outside_curly_braces(response)
             if response != response_stripped:
-                logging.warning("Had to strip extra content outside {}")
+                self.logger.warning("Had to strip extra content outside {}")
                 self.add_to_chat_history(
                     "Your response contained text that wasn't valid JSON. I stripped the extra text for now."
                     " In the future, please respond ONLY JSON.",
@@ -84,7 +85,7 @@ class Agent:
                     response_stripped, strict=False
                 )
             except json.decoder.JSONDecodeError as e:
-                logging.error(f"Error parsing response:\n{response}\n{e}")
+                self.logger.error(f"Error parsing response:\n{response}\n{e}")
                 self.add_to_chat_history(
                     content="Your response threw a JSONDecodeError - please try again",
                     role="user",
@@ -105,8 +106,8 @@ class Agent:
         return self.handle_string_response(response)
 
     def action_plan(self, response: ActionResponse) -> str:
-        logging.info(f"Main goal: {response.get('main_goal')}")
-        logging.info(f"Steps:\n{response.get('steps')}")
+        self.logger.info(f"Main goal: {response.get('main_goal')}")
+        self.logger.info(f"Steps:\n{response.get('steps')}")
         self.delete_old_plans()
         self.add_to_chat_history(
             content="You've updated your plan, good! What's next?",
@@ -138,7 +139,7 @@ class Agent:
 
     def action_invalid(self, response: ActionResponse) -> str:
         response_action = response.get("action")
-        logging.error(f"INVALID ACTION: {response_action}")
+        self.logger.error(f"INVALID ACTION: {response_action}")
         self.add_to_chat_history(
             content=f"INVALID ACTION: {response_action}",
             role="user",
@@ -189,7 +190,7 @@ class Agent:
             child_communication = child.get_response(
                 parent_communication, asker_name=self.name, tag="CHILD"
             )
-            logging.info(f"{name}: {child_communication}")
+            self.logger.info(f"{name}: {child_communication}")
             if "task is done" in child_communication.lower():
 
                 task_confirmed = confirm_child_agent_done(instructions)
@@ -212,7 +213,7 @@ class Agent:
             parent_communication = self.get_response(
                 child_communication, asker_name=name
             )
-            logging.info(f"{self.name}: {parent_communication}")
+            self.logger.info(f"{self.name}: {parent_communication}")
             input("Press ENTER to continue")
 
         self.add_to_chat_history(
@@ -271,11 +272,9 @@ class Agent:
                 self.chat_history.remove(message)
 
     def _add_or_merge_message(self, message: types_request.Message):
-        content_truncated = truncate_string(
-            message.get("content").replace("\n", " "), 100
-        )
-        logging.debug(
-            f"[{self.name}] {message.get('name', '')} ({message.get('role')}): {content_truncated}",
+        content = message.get("content")
+        self.logger.debug(
+            f"{message.get('name', '')} ({message.get('role')}): {content}",
         )
 
         if len(self.chat_history) == 0:
@@ -288,11 +287,11 @@ class Agent:
             message["role"] in roles_to_merge
             and message["role"] == latest_message["role"]
         ):
-            logging.debug(f"[Merging messages disabled for now]")
+            self.logger.debug(f"[Merging messages disabled for now]")
             self.chat_history.append(message)
             return
 
-            logging.debug(
+            self.logger.debug(
                 f"Duplicate roles \"{message['role']}\" detected, merging messages..."
             )
             latest_message["content"] = (
