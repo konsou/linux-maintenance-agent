@@ -6,6 +6,28 @@ import colorama
 
 import settings
 from tools.consent import ask_execution_consent_explain_command
+from tools.tool import Tool, ToolProperty
+
+
+class ToolCommandLine(Tool):
+    def __init__(self):
+        super().__init__(
+            name="run_command_line",
+            description=(
+                "Run a command line command in your workspace\n"
+                "- Each command is executed in a separate process\n"
+                "- Use full paths when accessing files and directories\n"
+                "- Will time out after 30 seconds - avoid long-running commands\n"
+                "- The user is asked for their consent before executing the command\n"
+                "- SUPPORTS ONLY CLI COMMANDS THAT OUTPUT TEXT - NO SUPPORT FOR GRAPHICS\n"
+                "- Uses PowerShell on Windows and the default shell on Linux"
+            ),
+            properties={
+                "command": ToolProperty(type="string", description="the command to run")
+            },
+            required=["command"],
+            callable=run_command_line,
+        )
 
 
 @ask_execution_consent_explain_command
