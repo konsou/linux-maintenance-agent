@@ -23,7 +23,6 @@ class ColorFormatter(logging.Formatter):
         }
 
     def format(self, record):
-        # TODO: truncate long records here
         record.msg = truncate_string(record.msg, 100)
         color = getattr(record, "ansi_color", None) or self.color_by_level.get(
             record.levelno, Fore.WHITE
@@ -37,6 +36,9 @@ class ColorFormatter(logging.Formatter):
 def setup_logger(level: int):
     logger = logging.getLogger()
     logger.setLevel(level)
+
+    # TODO: don't log library code
+    # https://stackoverflow.com/a/66345269
 
     # One logfile per run
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
