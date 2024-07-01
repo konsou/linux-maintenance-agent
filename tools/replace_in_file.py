@@ -2,7 +2,7 @@ import os
 import re
 
 import settings
-from tools.consent import ask_execution_consent
+from tools.consent_decorators import ask_execution_consent
 
 
 @ask_execution_consent

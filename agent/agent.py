@@ -18,7 +18,7 @@ from agent.confirmer import confirm_child_agent_done
 from agent.prompts import CLARIFICATION_PROMPT
 from text import truncate_string
 from tools import run_command_line, list_directory_contents
-from tools.consent import ask_data_send_consent
+from tools.consent_decorators import ask_data_send_consent
 
 
 class Agent:

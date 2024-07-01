@@ -2,7 +2,7 @@ import logging
 import os.path
 
 import settings
-from .consent import ask_execution_consent
+from .consent_decorators import ask_execution_consent
 
 
 @ask_execution_consent

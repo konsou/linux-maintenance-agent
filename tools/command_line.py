@@ -5,8 +5,8 @@ import subprocess
 import colorama
 
 import settings
-from tools.consent import ask_execution_consent_explain_command
-from tools.tool import Tool, ToolProperty
+from tools.consent_decorators import ask_execution_consent_explain_command
+from tools.abc import Tool, ToolProperty
 
 
 class ToolCommandLine(Tool):
