@@ -7,6 +7,7 @@ import colorama
 import settings
 from tools.consent_decorators import ask_execution_consent_explain_command
 from tools.abc import Tool, ToolProperty
+from tools.errors import NoWorkDirSetError
 
 
 class ToolCommandLine(Tool):
@@ -40,6 +41,9 @@ def run_command_line(
 ) -> str:
     if work_dir is None:
         work_dir = settings.AGENT_WORK_DIR
+
+    if not work_dir:
+        raise NoWorkDirSetError
 
     if platform.system() == "Windows":
         # Command to invoke PowerShell on Windows

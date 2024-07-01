@@ -20,6 +20,8 @@ class TestAgent(TestCase):
         mock_api = MagicMock(spec=llm_api.abc.LlmApi)
         mock_api.response_from_messages = MagicMock(return_value="test")
         settings.ALWAYS_SEND_SYSTEM_DATA = True
+        settings.AGENT_WORK_DIR = "/home/agent/workdir"
+        self.fs.create_dir(settings.AGENT_WORK_DIR)
         with patch("settings.LLM_API", mock_api):
             self.agent = agent.Agent(
                 name="Test Agent", system_prompt="You are a test agent"

@@ -1,21 +1,29 @@
 import platform
 import tempfile
 import unittest
+from pyfakefs.fake_filesystem_unittest import TestCase as FakeFilesystemTestCase
 from unittest import TestCase
 from unittest.mock import patch
 
+import settings
 from tools import command_line
 from test_helpers import patch_decorator
+from tools.errors import NoWorkDirSetError
 
 
-class TestCommandLineCommon(TestCase):
+class TestCommandLineCommon(FakeFilesystemTestCase):
     def setUp(self):
+        # NOTE: PyFakeFS and this decorator patcher don't play nice together
         consent_patcher = patch_decorator(
             module_being_tested=command_line,
             decorator_patch_location="tools.consent_decorators.ask_execution_consent_explain_command",
         )
         consent_patcher.patch()
         self.addCleanup(consent_patcher.kill_patches)
+
+        self.temp_dir = tempfile.TemporaryDirectory()
+        settings.AGENT_WORK_DIR = self.temp_dir.name
+        self.addCleanup(self.temp_dir.cleanup)
 
     def test_run_command_line(self):
         result = command_line.run_command_line("echo 'Hello World!'")
@@ -48,6 +56,13 @@ class TestCommandLineCommon(TestCase):
         result = command_line.run_command_line("echo ''")
         self.assertEqual("(no output)\nProcess exited with code 0", result)
 
+    def test_raise_error_when_no_work_dir_set(self):
+        with (
+            patch("settings.AGENT_WORK_DIR", None),
+            self.assertRaises(NoWorkDirSetError),
+        ):
+            command_line.run_command_line("echo Should raise error")
+
     def test_json_with_escaped_quotes(self):
         # TODO: THIS
         """Error parsing response:
@@ -69,6 +84,10 @@ class TestCommandLineWindows(TestCase):
         )
         consent_patcher.patch()
         self.addCleanup(consent_patcher.kill_patches)
+
+        self.temp_dir = tempfile.TemporaryDirectory()
+        settings.AGENT_WORK_DIR = self.temp_dir.name
+        self.addCleanup(self.temp_dir.cleanup)
 
     def test_run_command_multiple(self):
         command = 'Write-Output "Hello line 1"; Write-Output "Hello line 2"'
@@ -102,6 +121,10 @@ class TestCommandLineLinux(TestCase):
         )
         consent_patcher.patch()
         self.addCleanup(consent_patcher.kill_patches)
+
+        self.temp_dir = tempfile.TemporaryDirectory()
+        settings.AGENT_WORK_DIR = self.temp_dir.name
+        self.addCleanup(self.temp_dir.cleanup)
 
     def test_run_command_set_work_dir(self):
         with tempfile.TemporaryDirectory() as temp_dir:

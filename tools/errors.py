@@ -1,0 +1,2 @@
+class NoWorkDirSetError(Exception):
+    pass

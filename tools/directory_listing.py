@@ -5,6 +5,23 @@ from typing import List
 
 import gitignorant
 
+import settings
+from tools.abc import Tool
+from tools.errors import NoWorkDirSetError
+
+
+class ToolDirectoryListing(Tool):
+    def __init__(self):
+        super().__init__(
+            name="list_directory_contents",
+            description=("Lists the contents of a directory.\n"),
+            properties={
+                "command": ToolProperty(type="string", description="the command to run")
+            },
+            required=["command"],
+            callable=run_command_line,
+        )
+
 
 def read_gitignore(directory: str) -> List[gitignorant.Rule]:
     gitignore_path = Path(directory) / ".gitignore"
@@ -22,12 +39,13 @@ def should_ignore(path: str, patterns: List[gitignorant.Rule]) -> bool:
 
 def list_directory_contents(directory: str | None = None) -> str:
     if not directory:
-        logging.warning(
-            f'list_directory_contents called with "{directory}", returning empty string',
-        )
-        return ""
+        directory = settings.AGENT_WORK_DIR
 
-    directory_path = Path(directory)
+    if not directory:
+        raise NoWorkDirSetError(
+            "No directory given and no default work directory set in settings"
+        )
+
     ignore_patterns = read_gitignore(directory)
     result = []
 
