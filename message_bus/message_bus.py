@@ -8,6 +8,12 @@ logger = logging.getLogger(__name__)
 
 
 class MessageBus:
+    """
+    A dumb message bus that passes all messages to all subscribers,
+    leaving it to the subscribers to handle only the messages
+    meant for them.
+    """
+
     def __init__(self):
         self._subscribers: set[Callable[[Message], None]] = set()
 

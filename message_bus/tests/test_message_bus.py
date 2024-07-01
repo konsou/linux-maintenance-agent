@@ -25,6 +25,7 @@ class TestMessageBus(TestCase):
             message_type=MessageType.TEST,
             key="test_key",
             source="test_source",
+            target="test_target",
             value="test_value",
         )
         mock_subscriber = MagicMock(__name__="mock_subscriber")
