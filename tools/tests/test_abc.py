@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from tools.abc import Tool, ToolProperty
+from tools.base import Tool, ToolProperty
 
 
 class TestTool(TestCase):

@@ -6,7 +6,7 @@ import colorama
 
 import settings
 from tools.consent_decorators import ask_execution_consent_explain_command
-from tools.abc import Tool, ToolProperty
+from tools.base import Tool, ToolProperty
 from tools.errors import NoWorkDirSetError
 
 

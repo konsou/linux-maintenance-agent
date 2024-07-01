@@ -2,7 +2,7 @@ import logging
 import os.path
 
 import settings
-from .abc import Tool, ToolProperty
+from .base import Tool, ToolProperty
 from .consent_decorators import ask_execution_consent
 
 

@@ -1,7 +1,7 @@
 import functools
 
 import message_bus
-from .abc import Tool, ToolProperty
+from .base import Tool, ToolProperty
 
 
 class ToolSendMessage(Tool):

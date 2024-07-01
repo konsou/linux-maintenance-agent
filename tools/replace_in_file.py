@@ -2,7 +2,7 @@ import os
 import re
 
 import settings
-from tools.abc import Tool, ToolProperty
+from tools.base import Tool, ToolProperty
 from tools.consent_decorators import ask_execution_consent
 from tools.errors import NoWorkDirSetError
 

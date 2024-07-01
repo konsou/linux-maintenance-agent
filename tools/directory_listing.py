@@ -6,7 +6,7 @@ from typing import List
 import gitignorant
 
 import settings
-from tools.abc import Tool, ToolProperty
+from tools.base import Tool, ToolProperty
 from tools.errors import NoWorkDirSetError
 
 

@@ -1,4 +1,3 @@
-from abc import ABC
 from typing import TypedDict, Literal, NotRequired, Callable
 
 JSONSchemaType = Literal["string", "number", "object", "array", "boolean", "null"]
@@ -28,7 +27,7 @@ class ToolDict(TypedDict):
     function: FunctionDescription
 
 
-class Tool(ABC):
+class Tool:
     def __init__(
         self,
         name: str,

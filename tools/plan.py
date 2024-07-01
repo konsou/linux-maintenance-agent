@@ -1,6 +1,6 @@
 import json
 
-from tools.abc import Tool, ToolProperty
+from tools.base import Tool, ToolProperty
 
 
 class ToolPlan(Tool):

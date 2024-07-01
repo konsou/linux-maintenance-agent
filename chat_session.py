@@ -1,14 +1,15 @@
 import logging
 
 from agent.agent import Agent
-from agent.prompts import PLANNER_PROMPT
+from agent.prompts import PLANNER_PROMPT, CLARIFICATION_PROMPT
 
 logger = logging.getLogger(__name__)
 
 
 def chat_session():
     logger.info("AI Helper Chat Session. Type 'exit' to end the session.")
-    agent = Agent(name="Alice", system_prompt=PLANNER_PROMPT, is_planner=True)
+    agent = Agent(name="Alice", system_prompt="", is_planner=False)
+    # agent = Agent(name="Alice", system_prompt=PLANNER_PROMPT, is_planner=True)
     logger.info(f"Using model {agent.api.model}")
     logger.info(f"{agent.name}: {agent.start_greeting}")
 
