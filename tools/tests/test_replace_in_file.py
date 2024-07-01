@@ -4,6 +4,7 @@ from unittest.mock import patch
 from pyfakefs.fake_filesystem_unittest import TestCase
 
 import tools.replace_in_file
+from tools.errors import NoWorkDirSetError
 
 
 class TestReplaceInFile(TestCase):
@@ -42,12 +43,12 @@ class TestReplaceInFile(TestCase):
     def test_replace_in_file_raises_error_if_work_dir_none(self):
         with patch("settings.AGENT_WORK_DIR", None):
             with self.assertRaises(
-                ValueError,
+                NoWorkDirSetError,
                 msg="Must raise an error if settings.AGENT_WORK_DIR is None and no work_dir argument supplied",
             ):
                 tools.replace_in_file.replace_in_file("red", "blue", ".")
             with self.assertRaises(
-                ValueError,
+                NoWorkDirSetError,
                 msg="Must raise an error if settings.AGENT_WORK_DIR is None and work_dir argument is None",
             ):
                 tools.replace_in_file.replace_in_file("red", "blue", ".", work_dir=None)

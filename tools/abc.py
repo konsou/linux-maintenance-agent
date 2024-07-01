@@ -35,7 +35,7 @@ class Tool(ABC):
         description: str,
         properties: dict[str, ToolProperty],
         required: list[str],
-        callable: Callable[[...], str],
+        callable: Callable[..., str],
     ):
         self.type = "function"
         self.name = name
