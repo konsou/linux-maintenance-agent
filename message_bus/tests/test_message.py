@@ -9,6 +9,7 @@ class TestMessage(unittest.TestCase):
             message_type=MessageType.TEST,
             key="test_key",
             source="test_source",
+            target="test_target",
             value="test_value",
         )
         self.assertEqual(
@@ -16,6 +17,7 @@ class TestMessage(unittest.TestCase):
                 "message_type": MessageType.TEST,
                 "key": "test_key",
                 "source": "test_source",
+                "target": "test_target",
                 "value": "test_value",
             },
             m.as_dict(),
@@ -26,10 +28,11 @@ class TestMessage(unittest.TestCase):
             message_type=MessageType.TEST,
             key="test_key",
             source="test_source",
+            target="test_target",
             value="test_value",
         )
         self.assertEqual(
-            """{"message_type": "TEST", "key": "test_key", "source": "test_source", "value": "test_value"}""",
+            """{"message_type": "TEST", "key": "test_key", "source": "test_source", "target": "test_target", "value": "test_value"}""",
             m.as_json(indent=None),
         )
 
@@ -38,18 +41,21 @@ class TestMessage(unittest.TestCase):
             "message_type": MessageType.TEST,
             "key": "test_key",
             "source": "test_source",
+            "target": "test_target",
             "value": "test_value",
         }
         m = Message.from_dict(dict_vals)
         self.assertEqual(dict_vals["key"], m.key)
         self.assertEqual(dict_vals["source"], m.source)
+        self.assertEqual(dict_vals["target"], m.target)
         self.assertEqual(dict_vals["value"], m.value)
 
     def test_from_json(self):
-        json_string = """{"message_type": "TEST", "key": "test_key", "source": "test_source", "value": "test_value"}"""
+        json_string = """{"message_type": "TEST", "key": "test_key", "source": "test_source", "target": "test_target", "value": "test_value"}"""
         m = Message.from_json(json_string)
         self.assertEqual("test_key", m.key)
         self.assertEqual("test_source", m.source)
+        self.assertEqual("test_target", m.target)
         self.assertEqual("test_value", m.value)
 
     def test_from_to_dict(self):
@@ -57,13 +63,14 @@ class TestMessage(unittest.TestCase):
             "message_type": MessageType.TEST,
             "key": "test_key",
             "source": "test_source",
+            "target": "test_target",
             "value": "test_value",
         }
         m = Message.from_dict(dict_vals)
         self.assertEqual(dict_vals, m.as_dict())
 
     def test_from_to_json(self):
-        json_string = """{"message_type": "TEST", "key": "test_key", "source": "test_source", "value": "test_value"}"""
+        json_string = """{"message_type": "TEST", "key": "test_key", "source": "test_source", "target": "test_target", "value": "test_value"}"""
         m = Message.from_json(json_string)
         self.assertEqual(json_string, m.as_json(indent=None))
 
@@ -73,6 +80,7 @@ class TestMessage(unittest.TestCase):
                 message_type=MessageType.TEST,
                 key=123,
                 source="test_source",
+                target="test_target",
                 value="test_value",
             )
 
@@ -81,6 +89,16 @@ class TestMessage(unittest.TestCase):
                 message_type=MessageType.TEST,
                 key="test_key",
                 source=set(),
+                target="test_target",
+                value="test_value",
+            )
+
+        with self.assertRaises(TypeError, msg="Should validate target"):
+            Message(
+                message_type=MessageType.TEST,
+                key="test_key",
+                source="test_source",
+                target=set(),
                 value="test_value",
             )
 
@@ -89,5 +107,6 @@ class TestMessage(unittest.TestCase):
                 message_type=MessageType.TEST,
                 key="test_key",
                 source="test_source",
+                target="test_target",
                 value=object(),
             )

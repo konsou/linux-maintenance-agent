@@ -37,6 +37,7 @@ class Message:
     message_type: MessageType
     key: str
     source: str
+    target: str
     value: ValidMessageValue
 
     def __post_init__(self):
@@ -47,6 +48,8 @@ class Message:
             raise TypeError("Key must be a string")
         if not isinstance(self.source, str):
             raise TypeError("Source must be a string")
+        if not isinstance(self.target, str):
+            raise TypeError("Target must be a string")
         if not is_valid_message_value(self.value):
             raise TypeError("Value must be a ValidMessageValue")
 
@@ -58,7 +61,13 @@ class Message:
 
     @classmethod
     def from_dict(cls, d: Mapping[str, ValidMessageValue]) -> "Message":
-        return cls(str(d["message_type"]), str(d["key"]), str(d["source"]), d["value"])
+        return cls(
+            str(d["message_type"]),
+            str(d["key"]),
+            str(d["source"]),
+            str(d["target"]),
+            d["value"],
+        )
 
     @classmethod
     def from_json(cls, json_str: str) -> "Message":
