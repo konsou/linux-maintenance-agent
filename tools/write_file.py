@@ -2,7 +2,28 @@ import logging
 import os.path
 
 import settings
+from .abc import Tool, ToolProperty
 from .consent_decorators import ask_execution_consent
+
+
+class ToolWriteFile(Tool):
+    def __init__(self):
+        super().__init__(
+            name="write_file",
+            description="Write text to a file, overwriting if it already exists.",
+            properties={
+                "filename": ToolProperty(
+                    type="string",
+                    description="Path to the file to write. NOTE: this will always be relative to your work dir! Absolute paths are not supported for security reasons.",
+                ),
+                "content": ToolProperty(
+                    type="string",
+                    description="Contents to write.",
+                ),
+            },
+            required=["filename", "content"],
+            callable=write_file,
+        )
 
 
 @ask_execution_consent
