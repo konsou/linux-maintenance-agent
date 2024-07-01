@@ -6,7 +6,7 @@ from typing import List
 import gitignorant
 
 import settings
-from tools.abc import Tool
+from tools.abc import Tool, ToolProperty
 from tools.errors import NoWorkDirSetError
 
 
@@ -14,12 +14,15 @@ class ToolDirectoryListing(Tool):
     def __init__(self):
         super().__init__(
             name="list_directory_contents",
-            description=("Lists the contents of a directory.\n"),
+            description="Lists the contents of a directory.\n",
             properties={
-                "command": ToolProperty(type="string", description="the command to run")
+                "directory": ToolProperty(
+                    type="string",
+                    description="The directory to list. Defaults to your working directory if not given.",
+                )
             },
-            required=["command"],
-            callable=run_command_line,
+            required=[],
+            callable=list_directory_contents,
         )
 
 
