@@ -8,15 +8,16 @@ from llm_api import LlmApi, types_request
 
 import message_bus
 import settings
-import text
 import tools.base
-from agent.prompts import CLARIFICATION_PROMPT
+from agent.prompts import SYSTEM_PROMPT_ADDITION, PLANNER_SYSTEM_PROMPT
 from tools import list_directory_contents
 from tools.consent_decorators import ask_data_send_consent
 
 
 class Agent:
-    def __init__(self, name: str, system_prompt, is_planner: bool = False):
+    def __init__(
+        self, name: str, system_prompt: str | None = None, is_planner: bool = False
+    ):
         # TODO: define message bus higher up
         self.message_bus = message_bus.MessageBus()
 
@@ -26,22 +27,9 @@ class Agent:
         self.logger = logging.getLogger(f"{self.__class__.__name__}.{self.name}")
 
         self.is_planner = is_planner
-        work_dir_contents = list_directory_contents(settings.AGENT_WORK_DIR)
-        work_dir_contents = "(empty)" if not work_dir_contents else work_dir_contents
-        self.add_initial_prompts(
-            [
-                system_prompt,
-                CLARIFICATION_PROMPT,
-                f"Your work dir contents:\n{work_dir_contents}",
-            ]
-        )
-
         self.start_greeting = "Hello! How can I help you today?"
-        self.add_to_chat_history(
-            content=self.start_greeting,
-            role="assistant",
-            name=self.name,
-        )
+        self.system_prompt = system_prompt
+        self.add_initial_prompts()
 
         self.tools: list[tools.Tool] = self._add_tools()
 
@@ -60,20 +48,11 @@ class Agent:
                 tag=tag,
                 tool_choice="required",
                 tools=self._tools_as_dicts(),
+                response_format="json",
             )
 
-            response_stripped = text.strip_text_outside_curly_braces(response)
-            if response != response_stripped:
-                self.logger.warning("Had to strip extra content outside {}")
-                self.add_to_chat_history(
-                    "Your response contained text that wasn't valid JSON. I stripped the extra text for now."
-                    " In the future, please respond ONLY JSON.",
-                    role="user",
-                    name="Response parser",
-                )
-
             try:
-                response_parsed = json.loads(response_stripped, strict=False)
+                response_parsed = json.loads(response, strict=False)
             except json.decoder.JSONDecodeError as e:
                 self.logger.error(f"Error parsing response:\n{response}\n{e}")
                 self.add_to_chat_history(
@@ -232,9 +211,31 @@ class Agent:
             message["name"] = name
         return message
 
-    def add_initial_prompts(self, prompts: list[str]):
-        for prompt in prompts:
-            self.add_to_chat_history(content=prompt, role="system")
+    def add_initial_prompts(self):
+        if self.system_prompt is None and not self.is_planner:
+            self.system_prompt = "You are a helpful assistant."
+        if self.system_prompt is None and self.is_planner:
+            self.system_prompt = PLANNER_SYSTEM_PROMPT
+        self.system_prompt = (
+            f"Your name is {self.name}. {self.system_prompt}\n{SYSTEM_PROMPT_ADDITION}"
+        )
+        self.add_to_chat_history(
+            content=self.system_prompt,
+            role="system",
+        )
+
+        work_dir_contents = list_directory_contents(settings.AGENT_WORK_DIR)
+        work_dir_contents = "(empty)" if not work_dir_contents else work_dir_contents
+        self.add_to_chat_history(
+            content=f"Your work dir contents:\n{work_dir_contents}",
+            role="user",
+            name="System",
+        )
+        self.add_to_chat_history(
+            content=self.start_greeting,
+            role="assistant",
+            name=self.name,
+        )
 
     def _add_tools(self) -> list[type(tools.Tool)]:
         return [
