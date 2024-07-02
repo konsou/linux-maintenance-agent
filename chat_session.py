@@ -20,6 +20,6 @@ def chat_session():
             logger.info("Exiting AI Helper Chat Session.")
             break
 
-        response = agent.get_response(user_input)
+        response = agent.update(user_input)
 
         logger.info(f"{agent.name}: {response}")

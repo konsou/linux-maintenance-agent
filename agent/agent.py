@@ -19,6 +19,7 @@ class Agent:
         self, name: str, system_prompt: str | None = None, is_planner: bool = False
     ):
         # TODO: define message bus higher up
+        # TODO: handle API usage higher up
         self.message_bus = message_bus.MessageBus()
 
         self.api: LlmApi = settings.LLM_API
@@ -26,51 +27,83 @@ class Agent:
         self.name = name
         self.logger = logging.getLogger(f"{self.__class__.__name__}.{self.name}")
 
+        self.merge_messages_with_identical_roles = self.api.requires_alternating_roles
+
         self.is_planner = is_planner
         self.start_greeting = "Hello! How can I help you today?"
         self.system_prompt = system_prompt
         self.add_initial_prompts()
 
-        self.tools: list[tools.Tool] = self._add_tools()
+        self.tools: list[tools.Tool] = []
+        self.tools_by_name: dict[str, tools.Tool] = {}
+        self.add_tools()
 
-    def get_response(
+    def update(
         self,
         content: str,
         role: types_request.MessageRole = "user",
         asker_name: str = "User",
         tag: str | None = "AGENT",
-    ) -> str:
+    ) -> None:
         self.add_to_chat_history(content=content, role=role, name=asker_name)
 
-        while True:
-            response: str = self.api.response_from_messages(
-                self.chat_history,
-                tag=tag,
-                tool_choice="required",
-                tools=self._tools_as_dicts(),
-                response_format="json",
+        response: str = self.api.response_from_messages(
+            self.chat_history,
+            tag=tag,
+            tool_choice="required",
+            tools=self._tools_as_dicts(),
+            response_format="json",
+        )
+
+        # Response can contain several messages and/or tool calls
+        response_parsed = self.parse_response_json(response)
+        self.handle_response(response_parsed)
+        # No need to return anything - communication is done via `communicate` tool
+        return
+
+    def parse_response_json(self, response) -> list:
+        try:
+            return json.loads(response, strict=False)
+        except json.decoder.JSONDecodeError as e:
+            self.logger.error(f"Error parsing response:\n{response}\n{e}")
+            self.add_to_chat_history(
+                content="Your response threw a JSONDecodeError - please try again",
+                role="user",
+                name="Response parser",
             )
+            return []
 
-            try:
-                response_parsed = json.loads(response, strict=False)
-            except json.decoder.JSONDecodeError as e:
-                self.logger.error(f"Error parsing response:\n{response}\n{e}")
-                self.add_to_chat_history(
-                    content="Your response threw a JSONDecodeError - please try again",
-                    role="user",
-                    name="Response parser",
-                )
+    def handle_response(self, parsed_response):
+        # Currently Claude-specific
+        # Only tool calls supported - communication should be via communicate tool
+        for message in parsed_response:
+            if message["type"] != "tool_use":
+                # TODO: communicate this to agent
+                self.logger.warning(f"Response contained a non-tool message: {message}")
                 continue
+            self.add_to_chat_history(
+                # TODO: strip id?
+                content=json.dumps(message, indent=2, ensure_ascii=False),
+                role="assistant",
+                name=self.name,
+            )
+            self.handle_tool_use(message)
 
-            self.add_to_chat_history(content=response, role="assistant", name=self.name)
+    def handle_tool_use(self, tool_use_message: dict):
+        # Currently Claude-specific
+        tool = self.tools_by_name.get(tool_use_message["name"], None)
+        if not tool:
+            # TODO: communicate this to agent
+            self.logger.warning(f"Nonexistent tool: {tool_use_message['name']}")
+            return
+        try:
+            tool_result: str = tool(**tool_use_message["input"])
+        except Exception as e:
+            # TODO: communicate this to agent
+            self.logger.error(f"Error running tool: {tool_use_message['name']}: {e}")
+            return
 
-            self.handle_tools(response_parsed)
-
-        return self.handle_string_response(response)
-
-    def handle_tools(self, parsed_response):
-        # TODO
-        pass
+        self.add_to_chat_history(content=tool_result, role="user", name="Tool runner")
 
     # def action_spawn_and_execute(self, response: ActionResponse) -> str:
     #     """Spawn an agent to fulfill a task. Exits this function when the task is complete."""
@@ -164,28 +197,22 @@ class Agent:
             f"Added message: {message.get('name', '')} ({message.get('role')}): {content}",
         )
 
+        if not self.merge_messages_with_identical_roles:
+            self.chat_history.append(message)
+            return
+
         if len(self.chat_history) == 0:
             self.chat_history.append(message)
             return
 
-        roles_to_merge = ("user",)
         latest_message = self.chat_history[-1]
-        if (
-            message["role"] in roles_to_merge
-            and message["role"] == latest_message["role"]
-        ):
-            self.logger.debug(f"[Merging messages disabled for now]")
+        if message["role"] != latest_message["role"]:
             self.chat_history.append(message)
             return
 
-            self.logger.debug(
-                f"Duplicate roles \"{message['role']}\" detected, merging messages..."
-            )
-            latest_message["content"] = (
-                f"{latest_message['content']}\n{message['content']}"
-            )
-            return
-        self.chat_history.append(message)
+        self.logger.debug(f"Merging consecutive messages with role {message['role']}")
+        latest_message["content"] = f"{latest_message['content']}\n{message['content']}"
+        return
 
     def handle_string_response(self, response: str) -> str:
         self.add_to_chat_history(content=response, role="assistant", name=self.name)
@@ -237,8 +264,8 @@ class Agent:
             name=self.name,
         )
 
-    def _add_tools(self) -> list[type(tools.Tool)]:
-        return [
+    def add_tools(self):
+        self.tools = [
             tools.ToolCommandLine(),
             tools.ToolDirectoryListing(),
             tools.ToolPlan(),
@@ -246,6 +273,7 @@ class Agent:
             tools.ToolSendMessage(message_bus=self.message_bus),
             tools.ToolWriteFile(),
         ]
+        self.tools_by_name = {t.name: t for t in self.tools}
 
     def _tools_as_dicts(self) -> list[llm_api.types_request.Tool]:
         return [t.dict for t in self.tools]
