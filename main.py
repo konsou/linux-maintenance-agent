@@ -4,7 +4,7 @@ import os
 
 import settings
 import settings_logging
-from chat_session import chat_session
+from controller import Controller
 
 logger = logging.getLogger("main")
 
@@ -29,7 +29,8 @@ def main():
         os.makedirs(settings.AGENT_WORK_DIR, exist_ok=True)
         logger.info(f"Using work dir: {settings.AGENT_WORK_DIR}")
 
-        chat_session()
+        controller = Controller()
+        controller.start()
     except KeyboardInterrupt:
         logger.info("Ctrl-C pressed, exiting...")
 

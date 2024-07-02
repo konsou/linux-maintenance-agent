@@ -9,47 +9,52 @@ from llm_api import LlmApi, types_request
 import message_bus
 import settings
 import tools.base
-from agent.prompts import SYSTEM_PROMPT_ADDITION, PLANNER_SYSTEM_PROMPT
+from agent.abc import AgentABC
+from agent.prompts import SYSTEM_PROMPT_ADDITION
 from tools import list_directory_contents
 from tools.consent_decorators import ask_data_send_consent
 
 
-class Agent:
+class Agent(AgentABC):
     def __init__(
-        self, name: str, system_prompt: str | None = None, is_planner: bool = False
+        self,
+        name: str,
+        message_bus: message_bus.MessageBus,
+        system_prompt: str | None = None,
     ):
-        # TODO: define message bus higher up
+        super().__init__(
+            name=name, message_bus=message_bus, system_prompt=system_prompt
+        )
+
         # TODO: handle API usage higher up
-        self.message_bus = message_bus.MessageBus()
 
         self.api: LlmApi = settings.LLM_API
         self.chat_history: list[types_request.Message] = []
-        self.name = name
         self.logger = logging.getLogger(f"{self.__class__.__name__}.{self.name}")
 
         self.merge_messages_with_identical_roles = self.api.requires_alternating_roles
 
-        self.is_planner = is_planner
         self.start_greeting = "Hello! How can I help you today?"
-        self.system_prompt = system_prompt
         self.add_initial_prompts()
 
         self.tools: list[tools.Tool] = []
         self.tools_by_name: dict[str, tools.Tool] = {}
         self.add_tools()
 
+    def receive(self, message: message_bus.Message):
+        if message.target.lower().strip() == self.name.lower().strip():
+            self.add_to_chat_history(
+                content=message.as_json(),
+                role="user",
+            )
+
     def update(
         self,
-        content: str,
-        role: types_request.MessageRole = "user",
-        asker_name: str = "User",
-        tag: str | None = "AGENT",
     ) -> None:
-        self.add_to_chat_history(content=content, role=role, name=asker_name)
-
+        """React to new messages"""
         response: str = self.api.response_from_messages(
             self.chat_history,
-            tag=tag,
+            tag=self.tag,
             tool_choice="required",
             tools=self._tools_as_dicts(),
             response_format="json",
@@ -239,10 +244,8 @@ class Agent:
         return message
 
     def add_initial_prompts(self):
-        if self.system_prompt is None and not self.is_planner:
+        if self.system_prompt is None:
             self.system_prompt = "You are a helpful assistant."
-        if self.system_prompt is None and self.is_planner:
-            self.system_prompt = PLANNER_SYSTEM_PROMPT
         self.system_prompt = (
             f"Your name is {self.name}. {self.system_prompt}\n{SYSTEM_PROMPT_ADDITION}"
         )
@@ -270,7 +273,7 @@ class Agent:
             tools.ToolDirectoryListing(),
             tools.ToolPlan(),
             tools.ToolReplaceInFile(),
-            tools.ToolSendMessage(message_bus=self.message_bus),
+            tools.ToolSendMessage(sender_name=self.name, message_bus=self.message_bus),
             tools.ToolWriteFile(),
         ]
         self.tools_by_name = {t.name: t for t in self.tools}
