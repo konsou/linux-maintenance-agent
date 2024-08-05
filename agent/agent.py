@@ -42,6 +42,7 @@ class Agent(AgentABC):
         self.add_tools()
 
     def receive(self, message: message_bus.Message):
+        """Receive a message from the message bus"""
         if message.target.lower().strip() == self.name.lower().strip():
             self.add_to_chat_history(
                 content=message.as_json(),
