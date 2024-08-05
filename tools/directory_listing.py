@@ -44,6 +44,9 @@ def list_directory_contents(directory: str | None = None) -> str:
     if not directory:
         directory = settings.AGENT_WORK_DIR
 
+    if directory == ".":
+        directory = settings.AGENT_WORK_DIR
+
     if not directory:
         raise NoWorkDirSetError(
             "No directory given and no default work directory set in settings"
@@ -52,7 +55,8 @@ def list_directory_contents(directory: str | None = None) -> str:
     ignore_patterns = read_gitignore(directory)
     result = []
 
-    for root, dirs, files in os.walk(directory):
+    walk_result = os.walk(directory)
+    for root, dirs, files in walk_result:
         relative_root = os.path.relpath(root, directory).replace(os.sep, "/")
         # Remove leading './' from the path
         if relative_root == ".":

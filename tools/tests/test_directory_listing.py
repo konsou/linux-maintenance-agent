@@ -1,6 +1,7 @@
 import os
 import unittest
 
+from pyfakefs.fake_filesystem import OSType
 from pyfakefs.fake_filesystem_unittest import TestCase as FakeFilesystemTestCase
 from unittest.mock import mock_open, patch, Mock
 
@@ -18,6 +19,7 @@ class TestDirectoryListing(FakeFilesystemTestCase):
     def setUp(self):
         os.environ["_PROGRAMMER_AGENT_TESTING_SKIP_CONSENT"] = "1"
         self.setUpPyfakefs()
+        self.fs.os = OSType.LINUX
 
     def test_read_gitignore_exists(self):
         mock_data = "tmp\n*.log\n"
@@ -96,6 +98,19 @@ class TestDirectoryListing(FakeFilesystemTestCase):
         self.fs.create_file(test_file_path, contents="Roses are red, violets are blue")
         with patch("settings.AGENT_WORK_DIR", work_dir):
             result = list_directory_contents("")
+        self.assertTrue(any((test_file_name in line for line in result.split("\n"))))
+
+    def test_return_work_dir_contents_when_called_with_dot(self):
+        work_dir = "/home/test/workdir"
+        cwd_dir = "/home/test/another-dir"
+        test_file_name = "test_file.txt"
+        test_file_path = os.path.join(work_dir, test_file_name)
+        self.fs.create_dir(work_dir)
+        self.fs.create_dir(cwd_dir)
+        self.fs.create_file(test_file_path, contents="Roses are red, violets are blue")
+        self.fs.cwd = cwd_dir
+        with patch("settings.AGENT_WORK_DIR", work_dir):
+            result = list_directory_contents(".")
         self.assertTrue(any((test_file_name in line for line in result.split("\n"))))
 
     def test_raise_error_when_no_work_dir(self):
