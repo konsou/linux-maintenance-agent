@@ -37,8 +37,9 @@ def setup_logger(level: int):
     logger = logging.getLogger()
     logger.setLevel(level)
 
-    # TODO: don't log library code
-    # https://stackoverflow.com/a/66345269
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("anthropic").setLevel(logging.WARNING)
 
     # One logfile per run
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
