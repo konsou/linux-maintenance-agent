@@ -52,6 +52,10 @@ class Agent(AgentABC):
         self,
     ) -> None:
         """React to new messages"""
+        if self.chat_history[-1]["role"] == "assistant":
+            self.logger.info(f"No new messages for this agent, skipping update...")
+            return
+
         response: str = self.api.response_from_messages(
             self.chat_history,
             tag=self.tag,
