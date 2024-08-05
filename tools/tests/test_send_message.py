@@ -10,16 +10,18 @@ class TestSendMessage(TestCase):
         mbus = message_bus.MessageBus()
         message = message_bus.Message(
             message_type=message_bus.MessageType.CHAT_MESSAGE,
-            key="test_key",
+            key="",  # key not used atm
             source="test_source",
             target="test_target",
             value="test_value",
         )
-        send_message_tool = tools.send_message.ToolSendMessage(message_bus=mbus)
+        send_message_tool = tools.send_message.ToolSendMessage(
+            message_bus=mbus, sender_name=message.source
+        )
         mock_subscriber_handler = MagicMock(__name__="mock_subscriber_handler")
         mbus.subscribe(mock_subscriber_handler)
 
-        send_message_tool(message)
+        send_message_tool(recipient=message.target, content=message.value)
 
         self.assertEqual(
             mock_subscriber_handler.call_count,
