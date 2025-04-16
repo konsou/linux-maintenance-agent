@@ -5,8 +5,12 @@ from logging.handlers import RotatingFileHandler
 
 from colorama import Fore, Style
 
+import settings
+
 from text import truncate_string
 from utils import tuple_get
+
+CONSOLE_HANDLER = logging.StreamHandler()
 
 
 class ColorFormatter(logging.Formatter):
@@ -43,7 +47,7 @@ def setup_logger(level: int):
 
     # One logfile per run
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
-    log_dir = "logs"
+    log_dir = os.path.join(settings.PROJECT_DIR, "logs")
     log_file_path = os.path.join(log_dir, f"agent_{timestamp}.log")
     os.makedirs(log_dir, exist_ok=True)
 
@@ -51,11 +55,10 @@ def setup_logger(level: int):
     file_handler = RotatingFileHandler(
         log_file_path, maxBytes=1024 * 1024 * 5, backupCount=5
     )
-    console_handler = logging.StreamHandler()
 
     # Set the logging level for both handlers
     file_handler.setLevel(level)
-    console_handler.setLevel(level)
+    CONSOLE_HANDLER.setLevel(level)
 
     # Create a formatter for the log messages
     base_format = "[%(name)s] [%(levelname)s] %(message)s"
@@ -64,11 +67,11 @@ def setup_logger(level: int):
 
     # Attach the formatter to the handlers
     file_handler.setFormatter(file_formatter)
-    console_handler.setFormatter(console_formatter)
+    CONSOLE_HANDLER.setFormatter(console_formatter)
 
     # Add the handlers to the logger
     logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
+    logger.addHandler(CONSOLE_HANDLER)
 
 
 if __name__ == "__main__":

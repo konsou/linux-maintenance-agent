@@ -1,38 +1,32 @@
-import argparse
 import logging
-import os
 
+import agent
 import settings
 import settings_logging
-from controller import Controller
+
+from utils import print_and_log
 
 logger = logging.getLogger("main")
 
 
 def main():
-    try:
-        settings_logging.setup_logger(settings.LOG_LEVEL)
+    _agent = agent.Agent()
 
-        parser = argparse.ArgumentParser(description="AI Helper Command Line Interface")
-        parser.add_argument(
-            "-w", "--work-dir", type=str, help="Working directory for the assistant"
-        )
+    running = True
 
-        args = parser.parse_args()
+    while running:
+        try:
+            settings_logging.setup_logger(settings.LOG_LEVEL)
 
-        if not settings.AGENT_WORK_DIR:
-            settings.AGENT_WORK_DIR = os.path.join(os.getcwd(), "work_dir")
+            logger.info(f"LLM host: {settings.LLM_HOST}")
+            logger.info(f"Model: {settings.LLM_MODEL}")
 
-        if args.work_dir:
-            settings.AGENT_WORK_DIR = args.work_dir
+            print_and_log(_agent.greeting, logger=logger)
+            running = False
 
-        os.makedirs(settings.AGENT_WORK_DIR, exist_ok=True)
-        logger.info(f"Using work dir: {settings.AGENT_WORK_DIR}")
-
-        controller = Controller()
-        controller.start()
-    except KeyboardInterrupt:
-        logger.info("Ctrl-C pressed, exiting...")
+        except KeyboardInterrupt:
+            logger.info("Ctrl-C pressed, exiting...")
+            running = False
 
 
 if __name__ == "__main__":
